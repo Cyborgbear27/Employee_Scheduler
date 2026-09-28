@@ -1,0 +1,2978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Roster, Store Settings & Schedule Generator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printableScheduleArea, #printableScheduleArea * {
+        visibility: visible;
+      }
+      #printableScheduleArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 10px;
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100/80 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- Top Navigation & Brand Header -->
+  <header class="bg-white border-b border-slate-200/80 sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm ring-4 ring-indigo-50">
+          <i data-lucide="calendar-range" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold text-slate-900 leading-tight">RotaOps Schedule Architect</h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v4.3</span>
+          </div>
+          <p class="text-xs text-slate-500">Master Directory, Shift Labels, Exceptions & Schedule Editor</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs & Master Drawer Trigger -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold">
+          <button id="tabMasterBtn" onclick="switchView('master')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="book-user" class="w-4 h-4"></i>
+            Master Directory
+            <span id="tabCountMaster" class="ml-1 bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </button>
+          <button id="tabActiveBtn" onclick="switchView('active')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="calendar-check-2" class="w-4 h-4"></i>
+            Active Week Staging
+            <span id="tabCountActive" class="ml-1 bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </button>
+          <button id="tabSettingsBtn" onclick="switchView('settings')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="sliders" class="w-4 h-4"></i>
+            Store Settings
+          </button>
+          <button id="tabGenerateBtn" onclick="switchView('generate')" class="px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold">
+            <i data-lucide="sparkles" class="w-4 h-4 text-indigo-600"></i>
+            Generate Schedule
+          </button>
+        </div>
+
+        <button onclick="openMasterModal()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-xs transition">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-600"></i>
+          System JSON
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="toastNotification" class="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 hidden w-11/12 max-w-md no-print">
+    <div id="toastContent" class="p-3.5 rounded-2xl border shadow-lg flex items-center justify-between text-xs sm:text-sm font-medium transition">
+      <div class="flex items-center gap-2.5" id="toastMessage"></div>
+      <button onclick="dismissToast()" class="text-slate-400 hover:text-slate-700 font-bold ml-3 text-base leading-none">&times;</button>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-grow flex flex-col gap-6">
+
+    <!-- KPI Metric Banner -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 no-print">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Staged Staff</span>
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <i data-lucide="users" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 mt-2" id="metricActiveCount">0</div>
+        <p class="text-[11px] text-slate-400 mt-0.5">Active in this weekly run</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Weekly Labor Cap</span>
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 mt-2" id="metricTotalCapacity">0 hrs</div>
+        <p class="text-[11px] text-slate-400 mt-0.5">Budget Ceiling: <span id="metricBudgetCap" class="font-bold text-slate-700">205 hrs</span></p>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Shift Labels</span>
+          <div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+            <i data-lucide="tags" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 mt-2" id="metricShiftLabelsCount">3</div>
+        <p class="text-[11px] text-slate-400 mt-0.5">Configured shift templates</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Store Open Hours</span>
+          <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+            <i data-lucide="store" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 mt-2" id="metricOperatingHours">82 hrs</div>
+        <p class="text-[11px] text-slate-400 mt-0.5">Operating coverage window</p>
+      </div>
+    </div>
+
+    <!-- TAB 1: MASTER DIRECTORY -->
+    <section id="viewMasterDirectory" class="hidden space-y-6">
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
+              Register New Employee Profile
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Define permanent qualifications, default hour limits, and role anchors in the Master Directory.</p>
+          </div>
+        </div>
+
+        <form id="newEmployeeForm" onsubmit="handleCreateEmployee(event)" class="mt-4 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-4">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Employee Name *</label>
+              <input type="text" id="newMasterName" required placeholder="e.g., Marcus Vance" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div class="md:col-span-4">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Default Shift Window Anchor</label>
+              <div class="relative">
+                <select id="newMasterAnchor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl pl-3 pr-8 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none appearance-none">
+                  <option value="Opener">Opener (Early Shift Window)</option>
+                  <option value="Mid-Day Stocking">Mid-Day Stocking & Freight</option>
+                  <option value="Closing Keyholder">Closing Keyholder (Night Lock)</option>
+                  <option value="Flexible" selected>Flexible Swing Shift</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <div class="md:col-span-4 grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Max Cap</label>
+                <input type="number" id="newMasterMax" min="0" max="60" value="35" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl px-2.5 py-2 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Target</label>
+                <input type="number" id="newMasterTarget" min="0" max="60" value="30" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl px-2.5 py-2 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Floor</label>
+                <input type="number" id="newMasterFloor" min="0" max="60" value="15" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl px-2.5 py-2 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Operational Roles & Qualifications</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-xs">
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+                <input type="checkbox" id="newMasterKeyholder" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                <span class="font-bold text-slate-800">Keyholder</span>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+                <input type="checkbox" id="newMasterSolo" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                <span class="font-medium text-slate-800">Solo Eligible</span>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+                <input type="checkbox" id="newMasterRegister" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                <span class="font-medium text-slate-800">Register</span>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+                <input type="checkbox" id="newMasterDeli" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                <span class="font-medium text-slate-800">Deli / Stock</span>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+                <input type="checkbox" id="newMasterTrainee" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                <span class="font-medium text-slate-800">Trainee</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center gap-2">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              Save to Master Directory
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Master Directory Grid -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Permanent Master Profiles</h3>
+            <p class="text-xs text-slate-500">Profiles stored here are available for all weekly scheduling runs.</p>
+          </div>
+          <button onclick="stageAllMasterProfiles()" class="px-3.5 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            Stage All Profiles to Current Week
+          </button>
+        </div>
+
+        <div id="masterDirectoryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ACTIVE WEEK STAGING -->
+    <section id="viewActiveWeek" class="hidden space-y-6">
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Weekly Active Roster Staging
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Stage crew members from the Master Directory, adjust weekly target hours, and record date blackouts.</p>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <div class="relative min-w-[240px]">
+            <select id="stagePresetDropdown" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl pl-3 pr-8 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none appearance-none cursor-pointer">
+              <option value="">-- Choose Master Profile to Stage --</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+          </div>
+
+          <button onclick="stageFromDropdown()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+            Stage to Week
+          </button>
+
+          <button onclick="clearActiveRoster()" class="px-3 py-2.5 text-xs font-semibold text-slate-500 hover:text-rose-600 rounded-xl hover:bg-slate-100 transition">
+            Clear Active List
+          </button>
+        </div>
+      </div>
+
+      <div id="activeRosterCards" class="space-y-4"></div>
+
+      <div id="emptyActiveState" class="hidden bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+          <i data-lucide="users" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">No staff members staged for this week</h3>
+        <p class="text-xs text-slate-500 max-w-md mt-1 mb-4">Select team members from the Master Directory dropdown or populate all profiles with one click.</p>
+        <button onclick="stageAllMasterProfiles()" class="px-4 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition">
+          Stage All Master Profiles
+        </button>
+      </div>
+    </section>
+
+    <!-- TAB 3: STORE SETTINGS -->
+    <section id="viewStoreSettings" class="hidden space-y-6">
+
+      <!-- Shift Labels & Working Hours Templates -->
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="tags" class="w-4 h-4 text-indigo-600"></i>
+              Shift Labels & Working Hours Templates
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Customize default shift times (Open, Mid, Close) or define custom labels (e.g., Truck Intake, Deli Open) with dedicated time blocks and color styles.</p>
+          </div>
+          <button onclick="openNewShiftModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            Create Shift Label
+          </button>
+        </div>
+
+        <div id="shiftLabelsListGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
+      </div>
+      
+      <!-- Operating Hours & Daily Preferred Headcount -->
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-indigo-600"></i>
+              Weekly Operating Hours & Preferred Daily Headcount
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Specify operating windows and configure ideal staffing counts for morning, mid-day, and closing intervals.</p>
+          </div>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" id="badgeTotalOpenHours">
+            82.0 Operating Hours
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                <th class="py-2.5 px-3 min-w-[100px]">Day of Week</th>
+                <th class="py-2.5 px-3 min-w-[90px]">Status</th>
+                <th class="py-2.5 px-3 min-w-[120px]">Open Time</th>
+                <th class="py-2.5 px-3 min-w-[120px]">Close Time</th>
+                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 rounded-tl-xl text-indigo-900 font-bold">Pref. Morning</th>
+                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 text-indigo-900 font-bold">Pref. Mid</th>
+                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 rounded-tr-xl text-indigo-900 font-bold">Pref. Closing</th>
+                <th class="py-2.5 px-3 text-right">Daily Hours</th>
+              </tr>
+            </thead>
+            <tbody id="operatingHoursTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Holiday & Specific Date Exceptions -->
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="calendar-x-2" class="w-4 h-4 text-rose-600"></i>
+              Holiday & Date Exceptions
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Override standard store hours or close the location completely for designated holiday dates.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Calendar Date</label>
+            <input type="date" id="inputHolidayDate" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Exception Reason</label>
+            <input type="text" id="inputHolidayReason" placeholder="e.g., Thanksgiving, Inventory Count" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Store Status</label>
+            <select id="selectHolidayStatus" onchange="toggleHolidayHoursInputs(this.value)" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="closed">Store Closed All Day</option>
+              <option value="custom">Modified Operating Hours</option>
+            </select>
+          </div>
+          <div id="holidayHoursInputs" class="hidden md:col-span-2 grid-cols-2 gap-1.5">
+            <div>
+              <span class="block text-[10px] text-slate-500">Open</span>
+              <input type="time" id="inputHolidayOpen" value="10:00" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2 py-1.5 text-slate-800">
+            </div>
+            <div>
+              <span class="block text-[10px] text-slate-500">Close</span>
+              <input type="time" id="inputHolidayClose" value="17:00" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2 py-1.5 text-slate-800">
+            </div>
+          </div>
+          <div class="md:col-span-2">
+            <button onclick="addHolidayException()" class="w-full py-2 bg-slate-900 hover:bg-black text-white font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              Add Exception
+            </button>
+          </div>
+        </div>
+
+        <div id="holidayExceptionsChips" class="flex flex-wrap gap-2 pt-2"></div>
+      </div>
+
+      <!-- Operational Constraints & Consistency Weights -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-indigo-600"></i>
+              Store Operational Constraints
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Budget bounds and opening/closing keyholder policies.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-bold text-slate-700">Weekly Man-Hour Budget Ceiling</label>
+              <span id="labelBudgetCeiling" class="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">205 hrs</span>
+            </div>
+            <input type="range" id="inputBudgetCeiling" min="100" max="400" step="5" value="205" oninput="updateStoreConfig('manHourCap', Number(this.value)); document.getElementById('labelBudgetCeiling').textContent = this.value + ' hrs'; document.getElementById('metricBudgetCap').textContent = this.value + ' hrs';" class="w-full accent-indigo-600 cursor-pointer">
+            <p class="text-[11px] text-slate-400 mt-1">The solver penalizes schedule solutions exceeding this hard budget limit.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-bold text-slate-700">Minimum Closing Keyholders</label>
+              <span id="labelMinKeyholders" class="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">1 Lead</span>
+            </div>
+            <input type="range" id="inputMinKeyholders" min="1" max="3" step="1" value="1" oninput="updateStoreConfig('minClosingKeyholders', Number(this.value)); document.getElementById('labelMinKeyholders').textContent = this.value + (this.value == 1 ? ' Lead' : ' Leads');" class="w-full accent-amber-600 cursor-pointer">
+            <p class="text-[11px] text-slate-400 mt-1">Ensures store lockup is executed by at least one certified keyholder profile.</p>
+          </div>
+
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-600"></i>
+              Daily Preferred Headcounts
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Preferred staff counts are configured above in the <strong>Weekly Operating Hours</strong> table for each individual day (Morning, Mid, Closing).
+            </p>
+          </div>
+        </div>
+
+        <div class="lg:col-span-7 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-600"></i>
+              Schedule Consistency Penalty Weights
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Adjust penalty point costs when a schedule deviates from week-over-week consistency anchors.</p>
+          </div>
+
+          <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <i data-lucide="shield-x" class="w-4 h-4"></i>
+            </div>
+            <div class="text-xs">
+              <div class="font-bold text-rose-900">Hard Constraints: Cost = &infin; (Infeasible)</div>
+              <p class="text-rose-700">Exceeding individual max hours or leaving a shift without a keyholder cannot be violated under any weight.</p>
+            </div>
+          </div>
+
+          <div class="space-y-3.5">
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-bold text-slate-800">Day-of-Week Consistency</span>
+                <span id="weightVal_day" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">100 pts / day changed</span>
+              </div>
+              <input type="range" min="0" max="250" step="10" value="100" oninput="updateWeight('dayOfWeek', this.value, 'weightVal_day', 'pts / day changed')" class="w-full accent-indigo-600 cursor-pointer">
+              <p class="text-[11px] text-slate-400">Penalizes shifting someone off their usual days (e.g. keeping Wed/Fri scheduled).</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-bold text-slate-800">Shift Window Anchor (Morning vs Night)</span>
+                <span id="weightVal_anchor" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">80 pts / shift swap</span>
+              </div>
+              <input type="range" min="0" max="250" step="10" value="80" oninput="updateWeight('shiftAnchor', this.value, 'weightVal_anchor', 'pts / shift swap')" class="w-full accent-indigo-600 cursor-pointer">
+              <p class="text-[11px] text-slate-400">Penalizes rotating an Opener to Close or a Closer to Early Morning.</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-bold text-slate-800">Preferred Shift Selection</span>
+                <span id="weightVal_pref" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">50 pts / violation</span>
+              </div>
+              <input type="range" min="0" max="200" step="5" value="50" oninput="updateWeight('preferredShift', this.value, 'weightVal_pref', 'pts / violation')" class="w-full accent-indigo-600 cursor-pointer">
+              <p class="text-[11px] text-slate-400">Penalizes assigning shifts outside an employee's selected preferred days.</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-bold text-slate-800">Target Hour Stability (&plusmn;2h variance)</span>
+                <span id="weightVal_target" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">25 pts / hour variance</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" value="25" oninput="updateWeight('hourStability', this.value, 'weightVal_target', 'pts / hour variance')" class="w-full accent-indigo-600 cursor-pointer">
+              <p class="text-[11px] text-slate-400">Keeps total hours awarded close to an employee's target week-over-week.</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-bold text-slate-800">Consecutive Days Floor (&gt; 5 straight days)</span>
+                <span id="weightVal_consec" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">15 pts / excess day</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" value="15" oninput="updateWeight('consecutiveDays', this.value, 'weightVal_consec', 'pts / excess day')" class="w-full accent-indigo-600 cursor-pointer">
+              <p class="text-[11px] text-slate-400">Penalizes fatigue caused by consecutive working runs spanning week boundaries.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SCHEDULE GENERATION & INTERACTIVE ADJUSTMENTS -->
+    <section id="viewGenerateSchedule" class="space-y-6">
+      
+      <!-- Top Action Bar -->
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 no-print">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Weekly Schedule Generation & Interactive Adjustment</h2>
+            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver, or click any shift cell to edit assignments and mark weight exceptions.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="navigateWeek(-1)" class="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition" title="Previous Week">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+
+          <div class="relative min-w-[270px]">
+            <select id="selectTargetWeek" onchange="onWeekSelectionChange(this.value)" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm font-semibold rounded-xl pl-3 pr-8 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none appearance-none cursor-pointer">
+            </select>
+            <i data-lucide="calendar" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+          </div>
+
+          <button onclick="navigateWeek(1)" class="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition" title="Next Week">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+
+          <button onclick="openAddPersonToDayModal()" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5" title="Add someone to a specific day">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            Add Person to Day
+          </button>
+
+          <button onclick="runScheduleSolver()" class="px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2">
+            <i data-lucide="cpu" class="w-4 h-4"></i>
+            Generate Schedule
+          </button>
+
+          <button onclick="printOrExportSchedule()" class="px-3 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
+            Print
+          </button>
+        </div>
+      </div>
+
+      <!-- Schedule Meta & Diagnostics -->
+      <div id="solverDiagnosticsBar" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+          <div>
+            <span class="font-bold">Schedule Status:</span>
+            <span id="solverDiagnosticsText">Schedule generated satisfying keyholder hard rules and preferred headcounts.</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="bg-white/80 border border-emerald-300 px-2.5 py-1 rounded-lg font-mono font-bold text-emerald-800" id="solverScoreBadge">Penalty Score: 0 pts</span>
+          <span class="bg-emerald-600 text-white px-2.5 py-1 rounded-lg font-bold" id="solverAssignedHoursBadge">Total: 0.0 hrs</span>
+        </div>
+      </div>
+
+      <!-- Printable Schedule Grid Container -->
+      <div id="printableScheduleArea" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
+              Weekly Master Roster & Shift Grid
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5" id="scheduleDateRangeSubtitle">Week of September 28, 2026 - October 04, 2026</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-xl" id="summaryTotalStaffCount">0 Staff Staged</span>
+            <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-xl" id="summaryTotalScheduledHours">0.0 Total Hours</span>
+          </div>
+        </div>
+
+        <!-- Schedule Matrix Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-50/90 text-slate-700 border-b border-slate-200 uppercase font-bold tracking-wider text-[11px]">
+                <th class="py-3 px-3 min-w-[170px] sticky left-0 bg-slate-50 z-10 border-r border-slate-200">Employee & Role</th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_0">Mon<br><span class="text-[10px] font-normal text-slate-400">Sep 28</span></th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_1">Tue<br><span class="text-[10px] font-normal text-slate-400">Sep 29</span></th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_2">Wed<br><span class="text-[10px] font-normal text-slate-400">Sep 30</span></th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_3">Thu<br><span class="text-[10px] font-normal text-slate-400">Oct 01</span></th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_4">Fri<br><span class="text-[10px] font-normal text-slate-400">Oct 02</span></th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_5">Sat<br><span class="text-[10px] font-normal text-slate-400">Oct 03</span></th>
+                <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_6">Sun<br><span class="text-[10px] font-normal text-slate-400">Oct 04</span></th>
+                <th class="py-3 px-3 min-w-[100px] text-right bg-slate-50/50 font-black border-l border-slate-200">Weekly Total</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleGridBody" class="divide-y divide-slate-100"></tbody>
+            <tfoot id="scheduleGridFoot" class="border-t-2 border-slate-300 font-medium text-[11px] bg-slate-50/80"></tfoot>
+          </table>
+        </div>
+
+        <!-- Shift Legend / Key -->
+        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
+          <div id="dynamicShiftLegendContainer" class="flex items-center gap-3 flex-wrap">
+            <span class="font-bold text-slate-700">Active Shift Templates:</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1 text-indigo-700 font-semibold"><span class="w-2 h-2 rounded-full bg-indigo-600"></span> Click any cell to Edit</span>
+            <span class="inline-flex items-center gap-1"><i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-600"></i> Certified Keyholder</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: EDIT EMPLOYEE PROFILE (RESTORED TO MASTER DIRECTORY) -->
+  <div id="editEmployeeModalBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <i data-lucide="user-cog" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Edit Master Employee Profile</h3>
+            <p class="text-[11px] text-slate-500">Updates the permanent record and synchronizes active staging.</p>
+          </div>
+        </div>
+        <button onclick="closeEditEmployeeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
+      </div>
+
+      <form id="editEmployeeForm" onsubmit="handleSaveEditedEmployee(event)" class="space-y-4">
+        <input type="hidden" id="editEmpId">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Employee Name *</label>
+            <input type="text" id="editEmpName" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shift Window Anchor</label>
+            <select id="editEmpAnchor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2">
+              <option value="Opener">Opener (Early Shift Window)</option>
+              <option value="Mid-Day Stocking">Mid-Day Stocking & Freight</option>
+              <option value="Closing Keyholder">Closing Keyholder (Night Lock)</option>
+              <option value="Flexible">Flexible Swing Shift</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hour Parameters</label>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <span class="block text-[10px] text-slate-500 font-semibold mb-1">Max Weekly Cap</span>
+              <input type="number" id="editEmpMax" min="0" max="60" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-bold">
+            </div>
+            <div>
+              <span class="block text-[10px] text-slate-500 font-semibold mb-1">Target Hours</span>
+              <input type="number" id="editEmpTarget" min="0" max="60" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-bold">
+            </div>
+            <div>
+              <span class="block text-[10px] text-slate-500 font-semibold mb-1">Floor Minimum</span>
+              <input type="number" id="editEmpFloor" min="0" max="60" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-bold">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Operational Roles & Qualifications</label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+              <input type="checkbox" id="editEmpKeyholder" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+              <span class="font-bold text-slate-800">Keyholder</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+              <input type="checkbox" id="editEmpSolo" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+              <span class="font-medium text-slate-800">Solo Eligible</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+              <input type="checkbox" id="editEmpRegister" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+              <span class="font-medium text-slate-800">Register</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+              <input type="checkbox" id="editEmpDeli" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+              <span class="font-medium text-slate-800">Deli / Stock</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none sm:col-span-2">
+              <input type="checkbox" id="editEmpTrainee" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+              <span class="font-medium text-slate-800">Trainee (Shadow Only)</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Baseline Preferred Days</label>
+          <div class="grid grid-cols-7 gap-1.5" id="editEmpDaysContainer">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeEditEmployeeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-4.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition">
+            Save Profile Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE / EDIT SHIFT LABEL -->
+  <div id="shiftLabelModalBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <i data-lucide="tag" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-sm font-bold text-slate-900" id="shiftModalTitle">Configure Shift Label</h3>
+        </div>
+        <button onclick="closeShiftLabelModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
+      </div>
+
+      <form id="shiftLabelForm" onsubmit="handleSaveShiftLabel(event)" class="space-y-3.5">
+        <input type="hidden" id="shiftEditId" value="">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shift Label Name *</label>
+          <input type="text" id="shiftEditName" required placeholder="e.g., Truck Intake, Deli Open" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Start Time</label>
+            <input type="time" id="shiftEditStart" required value="08:30" onchange="calculateShiftModalHours()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">End Time</label>
+            <input type="time" id="shiftEditEnd" required value="16:00" onchange="calculateShiftModalHours()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2">
+          </div>
+        </div>
+
+        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+          <span class="text-slate-500 font-medium">Calculated Duration:</span>
+          <span class="font-black text-slate-800" id="shiftEditDurationPreview">7.5 hrs</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category Bucket</label>
+            <select id="shiftEditCategory" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-2.5 py-2">
+              <option value="Morning">Morning (Opening)</option>
+              <option value="Mid">Mid (Midday Overlap)</option>
+              <option value="Closing">Closing (Night Lock)</option>
+              <option value="Support">Support / Float</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color Theme</label>
+            <select id="shiftEditColor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-2.5 py-2">
+              <option value="amber">Amber / Gold</option>
+              <option value="sky">Sky Blue</option>
+              <option value="indigo">Indigo / Violet</option>
+              <option value="emerald">Emerald Green</option>
+              <option value="purple">Purple</option>
+              <option value="rose">Rose</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeShiftLabelModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition">
+            Save Shift Label
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: INTERACTIVE EDIT CELL SHIFT / WEIGHT EXCEPTION -->
+  <div id="cellEditModalBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900" id="cellModalEmpName">Adjust Shift</h3>
+            <p class="text-[11px] text-slate-400" id="cellModalDayLabel">Monday, Sep 28</p>
+          </div>
+        </div>
+        <button onclick="closeCellEditModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Select Shift Template</label>
+          <select id="cellShiftTemplateSelect" onchange="onCellTemplateSelected(this.value)" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-indigo-500">
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Shift Start</label>
+            <input type="time" id="cellShiftStart" onchange="calcCellDuration()" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Shift End</label>
+            <input type="time" id="cellShiftEnd" onchange="calcCellDuration()" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+          <span class="text-slate-500">Shift Credit Hours:</span>
+          <span class="font-black text-slate-800" id="cellShiftHoursPreview">7.5 hrs</span>
+        </div>
+
+        <div class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1.5">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="cellWeightExemptionCheckbox" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500 w-4 h-4">
+            <div>
+              <span class="text-xs font-bold text-amber-900 block">Mark as Weight Exception</span>
+              <span class="text-[11px] text-amber-700 leading-tight block">
+                This shift will be ignored by consistency penalty weights (anchor swap, off-day penalty, and hours variance).
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+        <button type="button" onclick="setCellToOff()" class="text-xs font-semibold text-rose-600 hover:text-rose-800">
+          Mark as OFF
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeCellEditModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">
+            Cancel
+          </button>
+          <button type="button" onclick="saveCellAdjustment()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs">
+            Apply Change
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD PERSON TO SPECIFIC DAY -->
+  <div id="addPersonDayModalBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Add Person to Day</h3>
+            <p class="text-[11px] text-slate-400">Schedule an additional team member on a specific day</p>
+          </div>
+        </div>
+        <button onclick="closeAddPersonDayModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
+      </div>
+
+      <form onsubmit="handleAddPersonToDaySubmit(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Day of Week</label>
+          <select id="addPersonTargetDay" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2.5"></select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select Employee</label>
+          <select id="addPersonTargetEmp" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2.5"></select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shift Template to Assign</label>
+          <select id="addPersonTargetShift" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2.5"></select>
+        </div>
+
+        <div class="p-3 bg-indigo-50/60 border border-indigo-200 rounded-2xl">
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input type="checkbox" id="addPersonWeightExempt" checked class="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+            <span class="text-xs text-indigo-900 font-medium">
+              Ignore in Consistency Scoring (Weight Exception)
+            </span>
+          </label>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeAddPersonDayModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs">
+            Assign Shift
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: MASTER JSON SYSTEM EXPORT / RESTORE -->
+  <div id="masterModalBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <i data-lucide="database" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">System Configuration & Master Storage</h3>
+            <p class="text-xs text-slate-500">Persistent storage, shift templates, weekly schedules, and store parameters</p>
+          </div>
+        </div>
+        <button onclick="closeMasterModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg text-lg font-bold leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Export the entire scheduling model—including employee profiles, active staging blackouts, shift labels/times, saved schedules, store hours, preferred daily headcounts, and consistency weights—as a complete configuration file.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+                <i data-lucide="download" class="w-4 h-4 text-indigo-600"></i>
+                Export Complete System JSON
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Downloads entire state ready for programmatic schedule solvers.</p>
+            </div>
+            <button onclick="downloadMasterJson()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5">
+              <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
+              Download schedule_config.json
+            </button>
+          </div>
+
+          <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+                <i data-lucide="upload" class="w-4 h-4 text-emerald-600"></i>
+                Restore from Backup JSON
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Loads Master profiles, shift labels, and settings from a saved JSON file.</p>
+            </div>
+            <label class="w-full py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center">
+              <i data-lucide="file-up" class="w-3.5 h-3.5 text-slate-500"></i>
+              Upload Backup File
+              <input type="file" id="masterJsonFileInput" accept=".json" class="hidden" onchange="uploadMasterJson(event)">
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Live JSON Raw State</label>
+          <textarea id="masterRawJsonPreview" readonly class="w-full h-36 bg-slate-900 text-emerald-400 font-mono text-[11px] rounded-2xl p-3 border border-slate-800 focus:outline-none resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        <button onclick="restoreDefaultsConfirm()" class="text-xs font-medium text-rose-600 hover:text-rose-800 underline">
+          Reset All to Factory Defaults
+        </button>
+        <button onclick="closeMasterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl transition">
+          Close Window
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FACTORY_PRESETS = [
+      { id: "luke", name: "Luke", maxHours: 35, targetHours: 32, minHours: 25, keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Opener", preferredDays: ["Mon", "Tue", "Wed", "Thu", "Fri"], unavailability: [] },
+      { id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, anchor: "Closing Keyholder", preferredDays: ["Wed", "Thu", "Fri", "Sat", "Sun"], unavailability: [] },
+      { id: "ari", name: "Ari", maxHours: 28, targetHours: 24, minHours: 16, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Mid-Day Stocking", preferredDays: ["Mon", "Wed", "Fri", "Sat"], unavailability: [] },
+      { id: "luis", name: "Luis", maxHours: 30, targetHours: 25, minHours: 18, keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, anchor: "Mid-Day Stocking", preferredDays: ["Tue", "Wed", "Thu", "Fri"], unavailability: [] },
+      { id: "alan", name: "Alan", maxHours: 35, targetHours: 28, minHours: 20, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, anchor: "Mid-Day Stocking", preferredDays: ["Mon", "Tue", "Thu", "Sat"], unavailability: [] },
+      { id: "david", name: "David", maxHours: 25, targetHours: 20, minHours: 12, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Flexible", preferredDays: ["Fri", "Sat", "Sun"], unavailability: [] },
+      { id: "noah", name: "Noah", maxHours: 35, targetHours: 30, minHours: 20, keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Closing Keyholder", preferredDays: ["Mon", "Tue", "Fri", "Sat"], unavailability: [] },
+      { id: "lauren", name: "Lauren", maxHours: 20, targetHours: 16, minHours: 10, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, anchor: "Opener", preferredDays: ["Tue", "Thu", "Sat"], unavailability: [] }
+    ];
+
+    const FACTORY_SHIFT_LABELS = [
+      { id: "SHIFT_OPEN", name: "Open", startTime: "08:30", endTime: "16:00", hours: 7.5, category: "Morning", color: "amber", isSystem: true },
+      { id: "SHIFT_MID", name: "Mid", startTime: "11:00", endTime: "19:00", hours: 7.5, category: "Mid", color: "sky", isSystem: true },
+      { id: "SHIFT_CLOSE", name: "Close", startTime: "13:30", endTime: "21:30", hours: 8.0, category: "Closing", color: "indigo", isSystem: true }
+    ];
+
+    const COLOR_CLASSES = {
+      amber: "bg-amber-100 text-amber-900 border-amber-300",
+      sky: "bg-sky-100 text-sky-900 border-sky-300",
+      indigo: "bg-indigo-100 text-indigo-900 border-indigo-300",
+      emerald: "bg-emerald-100 text-emerald-900 border-emerald-300",
+      purple: "bg-purple-100 text-purple-900 border-purple-300",
+      rose: "bg-rose-100 text-rose-900 border-rose-300",
+      slate: "bg-slate-100 text-slate-700 border-slate-300"
+    };
+
+    const DEFAULT_STORE_CONFIG = {
+      shiftLabels: FACTORY_SHIFT_LABELS,
+      operatingHours: [
+        { dayKey: "Mon", dayLabel: "Monday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
+        { dayKey: "Tue", dayLabel: "Tuesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
+        { dayKey: "Wed", dayLabel: "Wednesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
+        { dayKey: "Thu", dayLabel: "Thursday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
+        { dayKey: "Fri", dayLabel: "Friday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 4, prefClose: 3 },
+        { dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 4, prefClose: 3 },
+        { dayKey: "Sun", dayLabel: "Sunday", isClosed: false, open: "10:00", close: "18:00", prefMorning: 2, prefMid: 2, prefClose: 2 }
+      ],
+      holidayExceptions: [
+        { date: "2026-11-26", reason: "Thanksgiving Day", isClosed: true, open: "09:00", close: "21:00" },
+        { date: "2026-12-24", reason: "Christmas Eve (Early Close)", isClosed: false, open: "09:00", close: "17:00" }
+      ],
+      operationalConstraints: {
+        manHourCap: 205,
+        minClosingKeyholders: 1
+      },
+      consistencyWeights: {
+        dayOfWeek: 100,
+        shiftAnchor: 80,
+        preferredShift: 50,
+        hourStability: 25,
+        consecutiveDays: 15
+      }
+    };
+
+    const DAYS_CONFIG = [
+      { key: "Mon", label: "M", full: "Monday" },
+      { key: "Tue", label: "Tu", full: "Tuesday" },
+      { key: "Wed", label: "W", full: "Wednesday" },
+      { key: "Thu", label: "Th", full: "Thursday" },
+      { key: "Fri", label: "F", full: "Friday" },
+      { key: "Sat", label: "Sa", full: "Saturday" },
+      { key: "Sun", label: "Su", full: "Sunday" }
+    ];
+
+    const STORAGE_MASTER_KEY = "rotaops_master_roster_v43";
+    const STORAGE_ACTIVE_KEY = "rotaops_active_roster_v43";
+    const STORAGE_STORE_KEY = "rotaops_store_settings_v43";
+    const STORAGE_SCHEDULES_KEY = "rotaops_saved_schedules_v43";
+
+    let masterDirectory = [];
+    let activeRoster = [];
+    let storeConfig = {};
+    let savedSchedules = {};
+    let currentSelectedWeekMonday = '2026-09-28';
+    let currentView = 'master';
+    let activeEditContext = null;
+
+    function initApp() {
+      try {
+        const stored = localStorage.getItem(STORAGE_MASTER_KEY);
+        masterDirectory = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(FACTORY_PRESETS));
+      } catch (e) {
+        masterDirectory = JSON.parse(JSON.stringify(FACTORY_PRESETS));
+      }
+
+      try {
+        const storedActive = localStorage.getItem(STORAGE_ACTIVE_KEY);
+        activeRoster = storedActive ? JSON.parse(storedActive) : JSON.parse(JSON.stringify(masterDirectory));
+      } catch (e) {
+        activeRoster = JSON.parse(JSON.stringify(masterDirectory));
+      }
+
+      try {
+        const storedConfig = localStorage.getItem(STORAGE_STORE_KEY);
+        storeConfig = storedConfig ? JSON.parse(storedConfig) : JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
+        if (!storeConfig.shiftLabels || storeConfig.shiftLabels.length === 0) {
+          storeConfig.shiftLabels = JSON.parse(JSON.stringify(FACTORY_SHIFT_LABELS));
+        }
+      } catch (e) {
+        storeConfig = JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
+      }
+
+      try {
+        const storedSchedules = localStorage.getItem(STORAGE_SCHEDULES_KEY);
+        savedSchedules = storedSchedules ? JSON.parse(storedSchedules) : {};
+      } catch (e) {
+        savedSchedules = {};
+      }
+
+      buildWeekDropdown();
+      syncSettingsFormControls();
+      
+      if (!savedSchedules[currentSelectedWeekMonday]) {
+        generateScheduleForWeek(currentSelectedWeekMonday, false);
+      }
+
+      refreshAll();
+      switchView('master');
+    }
+
+    function saveMasterDirectory() {
+      try { localStorage.setItem(STORAGE_MASTER_KEY, JSON.stringify(masterDirectory)); } catch (e) {}
+      populateStageDropdown();
+      renderMasterDirectory();
+      updateMetrics();
+    }
+
+    function saveActiveRoster() {
+      try { localStorage.setItem(STORAGE_ACTIVE_KEY, JSON.stringify(activeRoster)); } catch (e) {}
+      renderActiveRoster();
+      updateMetrics();
+    }
+
+    function saveStoreConfig() {
+      try { localStorage.setItem(STORAGE_STORE_KEY, JSON.stringify(storeConfig)); } catch (e) {}
+      renderOperatingHoursTable();
+      renderHolidayExceptions();
+      renderShiftLabelsList();
+      renderDynamicShiftLegend();
+      updateMetrics();
+    }
+
+    function saveSchedules() {
+      try { localStorage.setItem(STORAGE_SCHEDULES_KEY, JSON.stringify(savedSchedules)); } catch (e) {}
+    }
+
+    function refreshAll() {
+      populateStageDropdown();
+      renderMasterDirectory();
+      renderActiveRoster();
+      renderOperatingHoursTable();
+      renderHolidayExceptions();
+      renderShiftLabelsList();
+      renderDynamicShiftLegend();
+      renderScheduleGrid();
+      updateMetrics();
+      lucide.createIcons();
+    }
+
+    function switchView(view) {
+      currentView = view;
+      const tabMasterBtn = document.getElementById('tabMasterBtn');
+      const tabActiveBtn = document.getElementById('tabActiveBtn');
+      const tabSettingsBtn = document.getElementById('tabSettingsBtn');
+      const tabGenerateBtn = document.getElementById('tabGenerateBtn');
+
+      const secMaster = document.getElementById('viewMasterDirectory');
+      const secActive = document.getElementById('viewActiveWeek');
+      const secSettings = document.getElementById('viewStoreSettings');
+      const secGenerate = document.getElementById('viewGenerateSchedule');
+
+      [tabMasterBtn, tabActiveBtn, tabSettingsBtn, tabGenerateBtn].forEach(btn => {
+        btn.className = "px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+      });
+      [secMaster, secActive, secSettings, secGenerate].forEach(sec => sec.classList.add('hidden'));
+
+      if (view === 'master') {
+        tabMasterBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
+        secMaster.classList.remove('hidden');
+      } else if (view === 'active') {
+        tabActiveBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
+        secActive.classList.remove('hidden');
+      } else if (view === 'settings') {
+        tabSettingsBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
+        secSettings.classList.remove('hidden');
+      } else if (view === 'generate') {
+        tabGenerateBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
+        secGenerate.classList.remove('hidden');
+        renderScheduleGrid();
+      }
+
+      lucide.createIcons();
+    }
+
+    function formatTime12(timeStr) {
+      if (!timeStr) return '--';
+      const [h, m] = timeStr.split(':').map(Number);
+      const ampm = h >= 12 ? 'p' : 'a';
+      const hh = h % 12 || 12;
+      return `${hh}:${String(m).padStart(2, '0')}${ampm}`;
+    }
+
+    function computeDurationHours(startStr, endStr) {
+      if (!startStr || !endStr) return 0;
+      const [sH, sM] = startStr.split(':').map(Number);
+      const [eH, eM] = endStr.split(':').map(Number);
+      let diffMin = (eH * 60 + eM) - (sH * 60 + sM);
+      if (diffMin < 0) diffMin += 24 * 60;
+      return Number((diffMin / 60).toFixed(2));
+    }
+
+    function renderMasterDirectory() {
+      const container = document.getElementById('masterDirectoryGrid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      masterDirectory.forEach((profile, index) => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-3xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between gap-4";
+
+        const tags = [];
+        if (profile.keyholder) tags.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Keyholder</span>');
+        if (profile.soloEligible) tags.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">Solo</span>');
+        if (profile.registerQualified) tags.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">Register</span>');
+        if (profile.deliSpecialist) tags.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Deli/Stock</span>');
+        if (profile.trainee) tags.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">Trainee</span>');
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                  ${profile.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">${escapeHtml(profile.name)}</h4>
+                  <span class="text-xs text-indigo-600 font-semibold">${profile.anchor || 'Flexible'} Anchor</span>
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <button onclick="openEditEmployeeModal('${profile.id}')" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit Employee Profile">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteMasterPreset(${index})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Profile">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-3 space-y-2.5">
+              <div class="flex flex-wrap gap-1">
+                ${tags.join('')}
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase">Max</span>
+                  <div class="text-xs font-black text-slate-800">${profile.maxHours || 35}h</div>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase">Target</span>
+                  <div class="text-xs font-black text-slate-800">${profile.targetHours || 30}h</div>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase">Floor</span>
+                  <div class="text-xs font-black text-slate-800">${profile.minHours || 15}h</div>
+                </div>
+              </div>
+
+              <div class="text-xs text-slate-500">
+                <span class="font-semibold text-slate-700">Preferred Days:</span> ${(profile.preferredDays || []).join(', ') || 'Any'}
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
+            <button onclick="openEditEmployeeModal('${profile.id}')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5">
+              <i data-lucide="pencil-line" class="w-3.5 h-3.5 text-slate-500"></i>
+              Edit Profile
+            </button>
+            <button onclick="stageSingleProfile('${profile.id}')" class="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center justify-center gap-1.5">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              Stage
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function openEditEmployeeModal(profileId) {
+      const emp = masterDirectory.find(p => p.id === profileId);
+      if (!emp) return;
+
+      document.getElementById('editEmpId').value = emp.id;
+      document.getElementById('editEmpName').value = emp.name;
+      document.getElementById('editEmpAnchor').value = emp.anchor || "Flexible";
+      document.getElementById('editEmpMax').value = emp.maxHours ?? 35;
+      document.getElementById('editEmpTarget').value = emp.targetHours ?? 30;
+      document.getElementById('editEmpFloor').value = emp.minHours ?? 15;
+
+      document.getElementById('editEmpKeyholder').checked = Boolean(emp.keyholder);
+      document.getElementById('editEmpSolo').checked = Boolean(emp.soloEligible);
+      document.getElementById('editEmpRegister').checked = Boolean(emp.registerQualified);
+      document.getElementById('editEmpDeli').checked = Boolean(emp.deliSpecialist);
+      document.getElementById('editEmpTrainee').checked = Boolean(emp.trainee);
+
+      const daysContainer = document.getElementById('editEmpDaysContainer');
+      daysContainer.innerHTML = DAYS_CONFIG.map(d => {
+        const isChecked = (emp.preferredDays || []).includes(d.key);
+        return `
+          <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer select-none text-xs font-bold hover:bg-indigo-50 hover:border-indigo-300 transition">
+            <span>${d.label}</span>
+            <input type="checkbox" name="editPreferredDay" value="${d.key}" ${isChecked ? 'checked' : ''} class="mt-1 rounded text-indigo-600 focus:ring-indigo-500">
+          </label>
+        `;
+      }).join('');
+
+      document.getElementById('editEmployeeModalBackdrop').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeEditEmployeeModal() {
+      document.getElementById('editEmployeeModalBackdrop').classList.add('hidden');
+    }
+
+    function handleSaveEditedEmployee(e) {
+      e.preventDefault();
+      const id = document.getElementById('editEmpId').value;
+      const emp = masterDirectory.find(p => p.id === id);
+      if (!emp) return;
+
+      const newName = (document.getElementById('editEmpName').value || '').trim();
+      if (!newName) return;
+
+      const dayCheckboxes = document.querySelectorAll('input[name="editPreferredDay"]:checked');
+      const selectedDays = Array.from(dayCheckboxes).map(cb => cb.value);
+
+      emp.name = newName;
+      emp.anchor = document.getElementById('editEmpAnchor').value;
+      emp.maxHours = Number(document.getElementById('editEmpMax').value) || 35;
+      emp.targetHours = Number(document.getElementById('editEmpTarget').value) || 30;
+      emp.minHours = Number(document.getElementById('editEmpFloor').value) || 15;
+
+      emp.keyholder = document.getElementById('editEmpKeyholder').checked;
+      emp.soloEligible = document.getElementById('editEmpSolo').checked;
+      emp.registerQualified = document.getElementById('editEmpRegister').checked;
+      emp.deliSpecialist = document.getElementById('editEmpDeli').checked;
+      emp.trainee = document.getElementById('editEmpTrainee').checked;
+      emp.preferredDays = selectedDays;
+
+      // Sync active staged record if present
+      const stagedIdx = activeRoster.findIndex(a => a.id === id || a.name.toLowerCase() === emp.name.toLowerCase());
+      if (stagedIdx > -1) {
+        activeRoster[stagedIdx].name = emp.name;
+        activeRoster[stagedIdx].anchor = emp.anchor;
+        activeRoster[stagedIdx].maxHours = emp.maxHours;
+        activeRoster[stagedIdx].targetHours = emp.targetHours;
+        activeRoster[stagedIdx].minHours = emp.minHours;
+        activeRoster[stagedIdx].keyholder = emp.keyholder;
+        activeRoster[stagedIdx].soloEligible = emp.soloEligible;
+        activeRoster[stagedIdx].registerQualified = emp.registerQualified;
+        activeRoster[stagedIdx].deliSpecialist = emp.deliSpecialist;
+        activeRoster[stagedIdx].trainee = emp.trainee;
+        activeRoster[stagedIdx].preferredDays = [...emp.preferredDays];
+        saveActiveRoster();
+      }
+
+      saveMasterDirectory();
+      closeEditEmployeeModal();
+      showToast(`Updated profile for ${emp.name}!`, "emerald");
+    }
+
+    function handleCreateEmployee(e) {
+      e.preventDefault();
+      const name = (document.getElementById('newMasterName').value || '').trim();
+      if (!name) return;
+
+      if (masterDirectory.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+        showToast(`An employee named "${name}" already exists in Master Directory.`, "amber");
+        return;
+      }
+
+      const id = name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
+      const newPerson = {
+        id,
+        name,
+        anchor: document.getElementById('newMasterAnchor').value,
+        maxHours: Number(document.getElementById('newMasterMax').value) || 35,
+        targetHours: Number(document.getElementById('newMasterTarget').value) || 30,
+        minHours: Number(document.getElementById('newMasterFloor').value) || 15,
+        keyholder: document.getElementById('newMasterKeyholder').checked,
+        soloEligible: document.getElementById('newMasterSolo').checked,
+        registerQualified: document.getElementById('newMasterRegister').checked,
+        deliSpecialist: document.getElementById('newMasterDeli').checked,
+        trainee: document.getElementById('newMasterTrainee').checked,
+        preferredDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        unavailability: []
+      };
+
+      masterDirectory.push(newPerson);
+      saveMasterDirectory();
+      showToast(`Created profile for ${name} in Master Directory!`, "emerald");
+
+      document.getElementById('newMasterName').value = '';
+      document.getElementById('newMasterKeyholder').checked = false;
+      document.getElementById('newMasterDeli').checked = false;
+      document.getElementById('newMasterTrainee').checked = false;
+    }
+
+    function deleteMasterPreset(index) {
+      const p = masterDirectory[index];
+      if (!p) return;
+      masterDirectory.splice(index, 1);
+      saveMasterDirectory();
+      showToast(`Removed ${p.name} from Master Directory.`, "slate");
+    }
+
+    function populateStageDropdown() {
+      const select = document.getElementById('stagePresetDropdown');
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Choose Master Profile to Stage --</option>';
+
+      masterDirectory.forEach(p => {
+        const isStaged = activeRoster.some(a => a.id === p.id || a.name.toLowerCase() === p.name.toLowerCase());
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.anchor}${p.keyholder ? ' • Keyholder' : ''})${isStaged ? ' [Already Staged]' : ''}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function stageFromDropdown() {
+      const select = document.getElementById('stagePresetDropdown');
+      const val = select.value;
+      if (!val) {
+        showToast("Please select an employee profile to stage.", "amber");
+        return;
+      }
+      stageSingleProfile(val);
+      select.value = '';
+    }
+
+    function stageSingleProfile(profileId) {
+      const match = masterDirectory.find(p => p.id === profileId);
+      if (!match) return;
+
+      if (activeRoster.some(a => a.id === match.id || a.name.toLowerCase() === match.name.toLowerCase())) {
+        showToast(`${match.name} is already staged for this week.`, "amber");
+        return;
+      }
+
+      const staged = JSON.parse(JSON.stringify(match));
+      staged.unavailability = staged.unavailability || [];
+      activeRoster.push(staged);
+      saveActiveRoster();
+      showToast(`Staged ${match.name} to the active week.`, "emerald");
+    }
+
+    function stageAllMasterProfiles() {
+      let added = 0;
+      masterDirectory.forEach(p => {
+        if (!activeRoster.some(a => a.id === p.id || a.name.toLowerCase() === p.name.toLowerCase())) {
+          activeRoster.push(JSON.parse(JSON.stringify(p)));
+          added++;
+        }
+      });
+      saveActiveRoster();
+      showToast(added > 0 ? `Staged ${added} team members.` : "All master profiles already staged.", "emerald");
+    }
+
+    function clearActiveRoster() {
+      if (activeRoster.length === 0) return;
+      activeRoster = [];
+      saveActiveRoster();
+      showToast("Cleared active week roster.", "slate");
+    }
+
+    function renderActiveRoster() {
+      const container = document.getElementById('activeRosterCards');
+      if (!container) return;
+      container.innerHTML = '';
+
+      activeRoster.forEach((emp, index) => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs transition hover:shadow-md";
+
+        const daysHtml = DAYS_CONFIG.map(d => {
+          const isChecked = (emp.preferredDays || []).includes(d.key);
+          return `
+            <label class="flex flex-col items-center justify-center p-2 rounded-xl border cursor-pointer select-none transition ${
+              isChecked ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 font-medium'
+            }">
+              <span class="text-xs">${d.label}</span>
+              <input type="checkbox" class="sr-only" ${isChecked ? 'checked' : ''} onchange="toggleActiveDay(${index}, '${d.key}')">
+            </label>
+          `;
+        }).join('');
+
+        const chipsHtml = (emp.unavailability || []).length > 0
+          ? emp.unavailability.map((b, bIdx) => `
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 font-medium shadow-2xs">
+                <i data-lucide="calendar-off" class="w-3.5 h-3.5 text-rose-500"></i>
+                <span class="font-bold font-mono">${escapeHtml(b.date)}</span>
+                ${b.reason ? `<span class="text-rose-600 font-normal">(${escapeHtml(b.reason)})</span>` : ''}
+                <button type="button" onclick="removeBlackoutDate(${index}, ${bIdx})" class="hover:text-rose-900 font-bold ml-1 text-sm leading-none focus:outline-none">&times;</button>
+              </span>
+            `).join('')
+          : `<span class="text-xs text-slate-400 italic">No blackout dates logged for this employee.</span>`;
+
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black flex items-center justify-center text-sm shadow-2xs">
+                ${emp.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-bold text-slate-900">${escapeHtml(emp.name)}</h3>
+                  <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">${emp.anchor}</span>
+                  ${emp.keyholder ? '<span class="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Keyholder</span>' : ''}
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Target: <strong class="text-slate-800">${emp.targetHours || 30}h</strong> | Hard Cap: <strong class="text-slate-800">${emp.maxHours || 35}h</strong></p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button onclick="syncCardToMaster(${index})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-semibold text-xs rounded-xl shadow-2xs transition" title="Save any adjusted target hours back to Master profile">
+                <i data-lucide="bookmark-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                Sync to Master
+              </button>
+              <button onclick="removeActiveEmployee(${index})" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" title="Remove from week">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-4">
+            <div class="lg:col-span-5 space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Weekly Target Hours</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <span class="block text-[11px] text-slate-500 font-medium mb-1">Max Cap</span>
+                    <input type="number" min="0" max="60" value="${emp.maxHours ?? 35}" onchange="updateActiveEmpField(${index}, 'maxHours', Number(this.value))" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <span class="block text-[11px] text-slate-500 font-medium mb-1">Target Hours</span>
+                    <input type="number" min="0" max="60" value="${emp.targetHours ?? 30}" onchange="updateActiveEmpField(${index}, 'targetHours', Number(this.value))" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <span class="block text-[11px] text-slate-500 font-medium mb-1">Floor Min</span>
+                    <input type="number" min="0" max="60" value="${emp.minHours ?? 15}" onchange="updateActiveEmpField(${index}, 'minHours', Number(this.value))" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-bold text-slate-800">
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Roles & Capabilities</label>
+                <div class="flex flex-wrap gap-1.5 text-xs">
+                  <span class="px-2.5 py-1 rounded-xl ${emp.keyholder ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Keyholder</span>
+                  <span class="px-2.5 py-1 rounded-xl ${emp.soloEligible ? 'bg-indigo-100 text-indigo-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Solo Eligible</span>
+                  <span class="px-2.5 py-1 rounded-xl ${emp.registerQualified ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Register</span>
+                  <span class="px-2.5 py-1 rounded-xl ${emp.deliSpecialist ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Deli/Stock</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-7 space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Weekly Preferred Days</label>
+                <div class="grid grid-cols-7 gap-1.5">
+                  ${daysHtml}
+                </div>
+              </div>
+
+              <div class="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                  <span>Weekly Calendar Blackout / Time-off Requests</span>
+                  <span class="text-[11px] font-normal text-slate-400">Target week specific</span>
+                </label>
+                
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <input type="date" id="dateInput_${index}" class="bg-white border border-slate-300 text-slate-700 text-xs rounded-xl px-2.5 py-2">
+                  <input type="text" id="reasonInput_${index}" placeholder="Reason (e.g., Doctor, Flight)" class="flex-1 bg-white border border-slate-300 text-slate-700 text-xs rounded-xl px-3 py-2">
+                  <button type="button" onclick="addBlackoutDate(${index})" class="bg-slate-900 hover:bg-black text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    Add
+                  </button>
+                </div>
+
+                <div class="flex flex-wrap gap-1.5 min-h-[30px] pt-1">
+                  ${chipsHtml}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function updateActiveEmpField(index, field, value) {
+      if (activeRoster[index]) {
+        activeRoster[index][field] = value;
+        saveActiveRoster();
+      }
+    }
+
+    function toggleActiveDay(index, dayKey) {
+      if (!activeRoster[index]) return;
+      if (!activeRoster[index].preferredDays) activeRoster[index].preferredDays = [];
+      const pos = activeRoster[index].preferredDays.indexOf(dayKey);
+      if (pos > -1) {
+        activeRoster[index].preferredDays.splice(pos, 1);
+      } else {
+        activeRoster[index].preferredDays.push(dayKey);
+      }
+      saveActiveRoster();
+      renderActiveRoster();
+    }
+
+    function addBlackoutDate(index) {
+      const dInput = document.getElementById(`dateInput_${index}`);
+      const rInput = document.getElementById(`reasonInput_${index}`);
+      if (!dInput || !dInput.value) {
+        showToast("Please choose a date.", "amber");
+        return;
+      }
+      if (!activeRoster[index].unavailability) activeRoster[index].unavailability = [];
+
+      if (activeRoster[index].unavailability.some(u => u.date === dInput.value)) {
+        showToast("Date already marked unavailable.", "amber");
+        return;
+      }
+
+      activeRoster[index].unavailability.push({
+        date: dInput.value,
+        reason: (rInput.value || '').trim()
+      });
+      dInput.value = '';
+      rInput.value = '';
+      saveActiveRoster();
+      renderActiveRoster();
+      showToast("Time-off request saved.", "emerald");
+    }
+
+    function removeBlackoutDate(empIdx, bIdx) {
+      if (activeRoster[empIdx]?.unavailability) {
+        activeRoster[empIdx].unavailability.splice(bIdx, 1);
+        saveActiveRoster();
+        renderActiveRoster();
+      }
+    }
+
+    function removeActiveEmployee(index) {
+      const name = activeRoster[index]?.name || "Employee";
+      activeRoster.splice(index, 1);
+      saveActiveRoster();
+      showToast(`Removed ${name} from this week.`, "slate");
+    }
+
+    function syncCardToMaster(activeIdx) {
+      const emp = activeRoster[activeIdx];
+      if (!emp) return;
+      const mIdx = masterDirectory.findIndex(m => m.id === emp.id || m.name.toLowerCase() === emp.name.toLowerCase());
+      if (mIdx > -1) {
+        masterDirectory[mIdx].maxHours = Number(emp.maxHours);
+        masterDirectory[mIdx].targetHours = Number(emp.targetHours);
+        masterDirectory[mIdx].minHours = Number(emp.minHours);
+        masterDirectory[mIdx].preferredDays = [...(emp.preferredDays || [])];
+        saveMasterDirectory();
+        showToast(`Synced ${emp.name}'s settings to Master Directory!`, "emerald");
+      }
+    }
+
+    function renderShiftLabelsList() {
+      const container = document.getElementById('shiftLabelsListGrid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const labels = storeConfig.shiftLabels || [];
+      labels.forEach((shift, index) => {
+        const card = document.createElement('div');
+        const colorClass = COLOR_CLASSES[shift.color] || COLOR_CLASSES.indigo;
+        const formattedWindow = `${formatTime12(shift.startTime)} - ${formatTime12(shift.endTime)}`;
+
+        card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between gap-3 hover:border-slate-300 transition";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-xs font-bold border ${colorClass}">
+                <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                ${escapeHtml(shift.name)}
+              </span>
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">${shift.category || 'Shift'}</span>
+            </div>
+
+            <div class="mt-3 flex items-baseline justify-between">
+              <div>
+                <div class="text-sm font-bold text-slate-800">${formattedWindow}</div>
+                <div class="text-[11px] text-slate-400">Duration: <strong class="text-slate-700">${shift.hours} hrs</strong></div>
+              </div>
+              <span class="text-[10px] font-mono bg-slate-50 text-slate-500 px-2 py-0.5 rounded-lg border border-slate-100">
+                ${shift.startTime} - ${shift.endTime}
+              </span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-[11px] text-slate-400">${shift.isSystem ? 'System Shift' : 'Custom Shift'}</span>
+            <div class="flex items-center gap-1">
+              <button onclick="openEditShiftModal(${index})" class="px-2.5 py-1 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition font-medium">
+                Edit Times
+              </button>
+              ${!shift.isSystem ? `
+                <button onclick="deleteShiftLabel(${index})" class="p-1 text-slate-300 hover:text-rose-600 rounded-lg transition" title="Delete shift label">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('metricShiftLabelsCount').textContent = labels.length;
+      lucide.createIcons();
+    }
+
+    function renderDynamicShiftLegend() {
+      const legend = document.getElementById('dynamicShiftLegendContainer');
+      if (!legend) return;
+      legend.innerHTML = '<span class="font-bold text-slate-700">Shift Types:</span>';
+
+      (storeConfig.shiftLabels || []).forEach(s => {
+        const span = document.createElement('span');
+        span.className = "inline-flex items-center gap-1.5";
+        span.innerHTML = `
+          <span class="w-2.5 h-2.5 rounded-full ${COLOR_CLASSES[s.color] ? COLOR_CLASSES[s.color].split(' ')[0] : 'bg-slate-200'}"></span>
+          ${escapeHtml(s.name)} (${formatTime12(s.startTime)} - ${formatTime12(s.endTime)})
+        `;
+        legend.appendChild(span);
+      });
+
+      const offSpan = document.createElement('span');
+      offSpan.className = "inline-flex items-center gap-1.5";
+      offSpan.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span> OFF';
+      legend.appendChild(offSpan);
+    }
+
+    function openNewShiftModal() {
+      document.getElementById('shiftModalTitle').textContent = "Create New Shift Label";
+      document.getElementById('shiftEditId').value = "";
+      document.getElementById('shiftEditName').value = "";
+      document.getElementById('shiftEditStart').value = "09:00";
+      document.getElementById('shiftEditEnd').value = "17:00";
+      document.getElementById('shiftEditCategory').value = "Mid";
+      document.getElementById('shiftEditColor').value = "purple";
+      calculateShiftModalHours();
+      document.getElementById('shiftLabelModalBackdrop').classList.remove('hidden');
+    }
+
+    function openEditShiftModal(index) {
+      const shift = storeConfig.shiftLabels[index];
+      if (!shift) return;
+      document.getElementById('shiftModalTitle').textContent = `Edit Shift Label (${shift.name})`;
+      document.getElementById('shiftEditId').value = shift.id;
+      document.getElementById('shiftEditName').value = shift.name;
+      document.getElementById('shiftEditStart').value = shift.startTime;
+      document.getElementById('shiftEditEnd').value = shift.endTime;
+      document.getElementById('shiftEditCategory').value = shift.category || "Morning";
+      document.getElementById('shiftEditColor').value = shift.color || "indigo";
+      calculateShiftModalHours();
+      document.getElementById('shiftLabelModalBackdrop').classList.remove('hidden');
+    }
+
+    function closeShiftLabelModal() {
+      document.getElementById('shiftLabelModalBackdrop').classList.add('hidden');
+    }
+
+    function calculateShiftModalHours() {
+      const s = document.getElementById('shiftEditStart').value;
+      const e = document.getElementById('shiftEditEnd').value;
+      const hours = computeDurationHours(s, e);
+      document.getElementById('shiftEditDurationPreview').textContent = `${hours} hrs`;
+    }
+
+    function handleSaveShiftLabel(e) {
+      e.preventDefault();
+      const id = document.getElementById('shiftEditId').value;
+      const name = (document.getElementById('shiftEditName').value || '').trim();
+      const startTime = document.getElementById('shiftEditStart').value;
+      const endTime = document.getElementById('shiftEditEnd').value;
+      const category = document.getElementById('shiftEditCategory').value;
+      const color = document.getElementById('shiftEditColor').value;
+      const hours = computeDurationHours(startTime, endTime);
+
+      if (!name) return;
+
+      if (!storeConfig.shiftLabels) storeConfig.shiftLabels = [];
+
+      if (id) {
+        const idx = storeConfig.shiftLabels.findIndex(s => s.id === id);
+        if (idx > -1) {
+          storeConfig.shiftLabels[idx].name = name;
+          storeConfig.shiftLabels[idx].startTime = startTime;
+          storeConfig.shiftLabels[idx].endTime = endTime;
+          storeConfig.shiftLabels[idx].hours = hours;
+          storeConfig.shiftLabels[idx].category = category;
+          storeConfig.shiftLabels[idx].color = color;
+        }
+      } else {
+        const newId = "SHIFT_" + name.toUpperCase().replace(/[^A-Z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
+        storeConfig.shiftLabels.push({
+          id: newId,
+          name,
+          startTime,
+          endTime,
+          hours,
+          category,
+          color,
+          isSystem: false
+        });
+      }
+
+      saveStoreConfig();
+      closeShiftLabelModal();
+      showToast(`Saved shift definition for "${name}".`, "emerald");
+    }
+
+    function deleteShiftLabel(index) {
+      const label = storeConfig.shiftLabels[index];
+      if (!label || label.isSystem) return;
+      storeConfig.shiftLabels.splice(index, 1);
+      saveStoreConfig();
+      showToast(`Removed shift label "${label.name}".`, "slate");
+    }
+
+    function getShiftDefinition(shiftId) {
+      const list = storeConfig.shiftLabels || FACTORY_SHIFT_LABELS;
+      const found = list.find(s => s.id === shiftId || s.name.toUpperCase() === shiftId?.toUpperCase());
+      if (found) {
+        return {
+          id: found.id,
+          label: found.name,
+          time: `${formatTime12(found.startTime)} - ${formatTime12(found.endTime)}`,
+          startTime: found.startTime,
+          endTime: found.endTime,
+          hours: found.hours,
+          category: found.category,
+          badgeClass: COLOR_CLASSES[found.color] || COLOR_CLASSES.indigo
+        };
+      }
+      return {
+        id: "OFF",
+        label: "OFF",
+        time: "--",
+        startTime: "",
+        endTime: "",
+        hours: 0,
+        category: "None",
+        badgeClass: "bg-slate-100 text-slate-400 border-slate-200"
+      };
+    }
+
+    function getWeekDates(mondayStr) {
+      const dates = [];
+      const [year, month, day] = mondayStr.split('-').map(Number);
+      const curr = new Date(year, month - 1, day);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(curr);
+        d.setDate(curr.getDate() + i);
+        const yStr = d.getFullYear();
+        const mStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dStr = String(d.getDate()).padStart(2, '0');
+        dates.push({
+          dateStr: `${yStr}-${mStr}-${dStr}`,
+          dayName: DAYS_CONFIG[i].full,
+          shortDay: DAYS_CONFIG[i].key,
+          displayDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        });
+      }
+      return dates;
+    }
+
+    function buildWeekDropdown() {
+      const select = document.getElementById('selectTargetWeek');
+      if (!select) return;
+      select.innerHTML = '';
+
+      const baseMonday = new Date(2026, 8, 28);
+      for (let offset = -4; offset <= 8; offset++) {
+        const wDate = new Date(baseMonday);
+        wDate.setDate(baseMonday.getDate() + (offset * 7));
+        const yStr = wDate.getFullYear();
+        const mStr = String(wDate.getMonth() + 1).padStart(2, '0');
+        const dStr = String(wDate.getDate()).padStart(2, '0');
+        const weekKey = `${yStr}-${mStr}-${dStr}`;
+
+        const endSun = new Date(wDate);
+        endSun.setDate(wDate.getDate() + 6);
+
+        const opt = document.createElement('option');
+        opt.value = weekKey;
+        opt.textContent = `Week of ${wDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endSun.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        if (weekKey === currentSelectedWeekMonday) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      }
+    }
+
+    function onWeekSelectionChange(weekKey) {
+      currentSelectedWeekMonday = weekKey;
+      renderScheduleGrid();
+    }
+
+    function navigateWeek(direction) {
+      const select = document.getElementById('selectTargetWeek');
+      if (!select) return;
+      const newIndex = select.selectedIndex + direction;
+      if (newIndex >= 0 && newIndex < select.options.length) {
+        select.selectedIndex = newIndex;
+        onWeekSelectionChange(select.value);
+      }
+    }
+
+    function calculateWeeklyOperatingHours() {
+      let totalMinutes = 0;
+      (storeConfig.operatingHours || []).forEach(day => {
+        if (!day.isClosed && day.open && day.close) {
+          const [oH, oM] = day.open.split(':').map(Number);
+          const [cH, cM] = day.close.split(':').map(Number);
+          const diff = (cH * 60 + cM) - (oH * 60 + oM);
+          if (diff > 0) totalMinutes += diff;
+        }
+      });
+      return (totalMinutes / 60).toFixed(1);
+    }
+
+    function updateMetrics() {
+      const activeCount = activeRoster.length;
+      const masterCount = masterDirectory.length;
+      const totalCapacity = activeRoster.reduce((sum, e) => sum + (Number(e.maxHours) || 0), 0);
+      const weeklyHours = calculateWeeklyOperatingHours();
+
+      document.getElementById('metricActiveCount').textContent = activeCount;
+      document.getElementById('metricTotalCapacity').textContent = `${totalCapacity} hrs`;
+      document.getElementById('metricOperatingHours').textContent = `${weeklyHours} hrs`;
+
+      document.getElementById('tabCountMaster').textContent = masterCount;
+      document.getElementById('tabCountActive').textContent = activeCount;
+
+      const badgeHours = document.getElementById('badgeTotalOpenHours');
+      if (badgeHours) badgeHours.textContent = `${weeklyHours} Operating Hours`;
+
+      const emptyEl = document.getElementById('emptyActiveState');
+      if (activeCount === 0) {
+        emptyEl.classList.remove('hidden');
+      } else {
+        emptyEl.classList.add('hidden');
+      }
+    }
+
+    function renderOperatingHoursTable() {
+      const tbody = document.getElementById('operatingHoursTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      storeConfig.operatingHours.forEach((day, index) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/60 transition";
+
+        let dayDurationStr = "0.0 hrs";
+        if (!day.isClosed && day.open && day.close) {
+          const [oH, oM] = day.open.split(':').map(Number);
+          const [cH, cM] = day.close.split(':').map(Number);
+          const diff = (cH * 60 + cM) - (oH * 60 + oM);
+          if (diff > 0) dayDurationStr = `${(diff / 60).toFixed(1)} hrs`;
+        } else if (day.isClosed) {
+          dayDurationStr = "Closed";
+        }
+
+        tr.innerHTML = `
+          <td class="py-3 px-3 font-bold text-slate-800">${day.dayLabel}</td>
+          <td class="py-3 px-3">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs">
+              <input type="checkbox" ${day.isClosed ? 'checked' : ''} onchange="updateDayHours(${index}, 'isClosed', this.checked)" class="rounded text-rose-600 focus:ring-rose-500">
+              <span class="${day.isClosed ? 'text-rose-600 font-bold' : 'text-slate-600'}">${day.isClosed ? 'Closed' : 'Open'}</span>
+            </label>
+          </td>
+          <td class="py-3 px-3">
+            <input type="time" value="${day.open || '09:00'}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'open', this.value)" class="bg-slate-50 border border-slate-300 text-xs rounded-xl px-2 py-1.5 text-slate-800 disabled:opacity-40">
+          </td>
+          <td class="py-3 px-3">
+            <input type="time" value="${day.close || '21:00'}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'close', this.value)" class="bg-slate-50 border border-slate-300 text-xs rounded-xl px-2 py-1.5 text-slate-800 disabled:opacity-40">
+          </td>
+          
+          <td class="py-3 px-3 text-center bg-indigo-50/30">
+            <input type="number" min="0" max="10" value="${day.prefMorning ?? 2}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMorning', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
+          </td>
+
+          <td class="py-3 px-3 text-center bg-indigo-50/30">
+            <input type="number" min="0" max="10" value="${day.prefMid ?? 3}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMid', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
+          </td>
+
+          <td class="py-3 px-3 text-center bg-indigo-50/30">
+            <input type="number" min="0" max="10" value="${day.prefClose ?? 2}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefClose', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
+          </td>
+
+          <td class="py-3 px-3 text-right font-mono font-bold ${day.isClosed ? 'text-slate-400' : 'text-slate-700'}">${dayDurationStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateDayHours(index, field, value) {
+      if (storeConfig.operatingHours[index]) {
+        storeConfig.operatingHours[index][field] = value;
+        saveStoreConfig();
+      }
+    }
+
+    function toggleHolidayHoursInputs(val) {
+      const container = document.getElementById('holidayHoursInputs');
+      if (val === 'custom') {
+        container.classList.remove('hidden');
+        container.classList.add('grid');
+      } else {
+        container.classList.add('hidden');
+        container.classList.remove('grid');
+      }
+    }
+
+    function addHolidayException() {
+      const dateEl = document.getElementById('inputHolidayDate');
+      const reasonEl = document.getElementById('inputHolidayReason');
+      const statusEl = document.getElementById('selectHolidayStatus');
+      const openEl = document.getElementById('inputHolidayOpen');
+      const closeEl = document.getElementById('inputHolidayClose');
+
+      if (!dateEl || !dateEl.value) {
+        showToast("Please choose a holiday date.", "amber");
+        return;
+      }
+
+      if (!storeConfig.holidayExceptions) storeConfig.holidayExceptions = [];
+
+      const isClosed = statusEl.value === 'closed';
+      storeConfig.holidayExceptions.push({
+        date: dateEl.value,
+        reason: (reasonEl.value || '').trim() || 'Holiday Exception',
+        isClosed,
+        open: isClosed ? '09:00' : openEl.value,
+        close: isClosed ? '21:00' : closeEl.value
+      });
+
+      dateEl.value = '';
+      reasonEl.value = '';
+      saveStoreConfig();
+      showToast("Holiday exception added.", "emerald");
+    }
+
+    function removeHolidayException(index) {
+      if (storeConfig.holidayExceptions) {
+        storeConfig.holidayExceptions.splice(index, 1);
+        saveStoreConfig();
+        showToast("Holiday exception removed.", "slate");
+      }
+    }
+
+    function renderHolidayExceptions() {
+      const container = document.getElementById('holidayExceptionsChips');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!storeConfig.holidayExceptions || storeConfig.holidayExceptions.length === 0) {
+        container.innerHTML = '<span class="text-xs text-slate-400 italic">No holiday exceptions defined.</span>';
+        return;
+      }
+
+      storeConfig.holidayExceptions.forEach((h, idx) => {
+        const chip = document.createElement('span');
+        chip.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs bg-slate-50 border border-slate-200 text-slate-800 shadow-2xs";
+        chip.innerHTML = `
+          <i data-lucide="${h.isClosed ? 'door-closed' : 'calendar-clock'}" class="w-3.5 h-3.5 ${h.isClosed ? 'text-rose-500' : 'text-indigo-600'}"></i>
+          <span class="font-bold font-mono">${escapeHtml(h.date)}</span>
+          <span class="font-semibold text-slate-700">${escapeHtml(h.reason)}</span>
+          <span class="text-[11px] font-bold ${h.isClosed ? 'text-rose-600' : 'text-indigo-600'}">(${h.isClosed ? 'Closed' : `${h.open}-${h.close}`})</span>
+          <button onclick="removeHolidayException(${idx})" class="text-slate-400 hover:text-rose-700 font-bold ml-1 text-sm leading-none">&times;</button>
+        `;
+        container.appendChild(chip);
+      });
+      lucide.createIcons();
+    }
+
+    function updateStoreConfig(key, value) {
+      storeConfig.operationalConstraints[key] = value;
+      saveStoreConfig();
+    }
+
+    function updateWeight(key, val, labelId, suffix) {
+      storeConfig.consistencyWeights[key] = Number(val);
+      document.getElementById(labelId).textContent = `${val} ${suffix}`;
+      saveStoreConfig();
+    }
+
+    function syncSettingsFormControls() {
+      if (storeConfig.operationalConstraints) {
+        const cap = storeConfig.operationalConstraints.manHourCap ?? 205;
+        const keyMin = storeConfig.operationalConstraints.minClosingKeyholders ?? 1;
+
+        const capInput = document.getElementById('inputBudgetCeiling');
+        if (capInput) capInput.value = cap;
+        const capLabel = document.getElementById('labelBudgetCeiling');
+        if (capLabel) capLabel.textContent = `${cap} hrs`;
+
+        const keyInput = document.getElementById('inputMinKeyholders');
+        if (keyInput) keyInput.value = keyMin;
+        const keyLabel = document.getElementById('labelMinKeyholders');
+        if (keyLabel) keyLabel.textContent = `${keyMin} ${keyMin == 1 ? 'Lead' : 'Leads'}`;
+      }
+
+      if (storeConfig.consistencyWeights) {
+        const w = storeConfig.consistencyWeights;
+        setSlider('weightVal_day', w.dayOfWeek ?? 100, 'pts / day changed');
+        setSlider('weightVal_anchor', w.shiftAnchor ?? 80, 'pts / shift swap');
+        setSlider('weightVal_pref', w.preferredShift ?? 50, 'pts / violation');
+        setSlider('weightVal_target', w.hourStability ?? 25, 'pts / hour variance');
+        setSlider('weightVal_consec', w.consecutiveDays ?? 15, 'pts / excess day');
+      }
+    }
+
+    function setSlider(elId, val, suffix) {
+      const el = document.getElementById(elId);
+      if (el) el.textContent = `${val} ${suffix}`;
+    }
+
+    function runScheduleSolver() {
+      if (activeRoster.length === 0) {
+        showToast("Cannot generate schedule: Active week roster has 0 staged staff.", "amber");
+        return;
+      }
+      generateScheduleForWeek(currentSelectedWeekMonday, true);
+    }
+
+    function generateScheduleForWeek(targetWeekMonday, showFeedback = true) {
+      const weekDates = getWeekDates(targetWeekMonday);
+      const employees = JSON.parse(JSON.stringify(activeRoster));
+      const weights = storeConfig.consistencyWeights || { dayOfWeek: 100, shiftAnchor: 80, preferredShift: 50, hourStability: 25, consecutiveDays: 15 };
+      const hoursCap = storeConfig.operationalConstraints?.manHourCap || 205;
+      const minKeyOnClose = storeConfig.operationalConstraints?.minClosingKeyholders || 1;
+
+      const openShift = getShiftDefinition("SHIFT_OPEN");
+      const midShift = getShiftDefinition("SHIFT_MID");
+      const closeShift = getShiftDefinition("SHIFT_CLOSE");
+
+      const scheduleAssignments = {};
+      const empHourTotals = {};
+
+      employees.forEach(emp => {
+        scheduleAssignments[emp.id] = new Array(7).fill(null).map(() => ({
+          ...getShiftDefinition("OFF"),
+          isException: false,
+          isManual: false
+        }));
+        empHourTotals[emp.id] = 0;
+      });
+
+      const dailyTargets = weekDates.map((wDate, dayIdx) => {
+        const opDay = storeConfig.operatingHours[dayIdx] || { prefMorning: 2, prefMid: 3, prefClose: 2, isClosed: false };
+        const hol = (storeConfig.holidayExceptions || []).find(h => h.date === wDate.dateStr);
+        const isClosed = hol ? hol.isClosed : opDay.isClosed;
+        return {
+          dayIdx,
+          dateStr: wDate.dateStr,
+          isClosed,
+          openSlots: isClosed ? 0 : (opDay.prefMorning || 2),
+          midSlots: isClosed ? 0 : (opDay.prefMid || 3),
+          closeSlots: isClosed ? 0 : (opDay.prefClose || 2)
+        };
+      });
+
+      // Pass 1: Mandatory Closing Keyholders
+      dailyTargets.forEach(target => {
+        if (target.isClosed) return;
+
+        let neededKeyholders = minKeyOnClose;
+        const keyholderCandidates = employees.filter(e => {
+          if (!e.keyholder) return false;
+          const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
+          if (isBlackedOut) return false;
+          if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
+          return true;
+        }).sort((a, b) => {
+          const aAnchorBonus = a.anchor === "Closing Keyholder" ? -50 : 0;
+          const bAnchorBonus = b.anchor === "Closing Keyholder" ? -50 : 0;
+          return (aAnchorBonus + empHourTotals[a.id]) - (bAnchorBonus + empHourTotals[b.id]);
+        });
+
+        for (let i = 0; i < Math.min(neededKeyholders, keyholderCandidates.length); i++) {
+          const emp = keyholderCandidates[i];
+          if (scheduleAssignments[emp.id][target.dayIdx].id === "OFF") {
+            scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
+            empHourTotals[emp.id] += closeShift.hours;
+            target.closeSlots = Math.max(0, target.closeSlots - 1);
+          }
+        }
+      });
+
+      // Pass 2: Openers
+      dailyTargets.forEach(target => {
+        if (target.isClosed) return;
+
+        const openCandidates = employees.filter(e => {
+          if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
+          const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
+          if (isBlackedOut) return false;
+          if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
+          return true;
+        }).sort((a, b) => {
+          const aScore = (a.anchor === "Opener" ? -40 : 0) + (a.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -20 : 0);
+          const bScore = (b.anchor === "Opener" ? -40 : 0) + (b.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -20 : 0);
+          return aScore - bScore;
+        });
+
+        while (target.openSlots > 0 && openCandidates.length > 0) {
+          const emp = openCandidates.shift();
+          scheduleAssignments[emp.id][target.dayIdx] = { ...openShift, isException: false, isManual: false };
+          empHourTotals[emp.id] += openShift.hours;
+          target.openSlots--;
+        }
+      });
+
+      // Pass 3: Remaining Closing Shifts
+      dailyTargets.forEach(target => {
+        if (target.isClosed) return;
+
+        const closeCandidates = employees.filter(e => {
+          if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
+          const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
+          if (isBlackedOut) return false;
+          if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
+          return true;
+        }).sort((a, b) => {
+          const aPref = a.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -30 : 0;
+          const bPref = b.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -30 : 0;
+          return (empHourTotals[a.id] + aPref) - (empHourTotals[b.id] + bPref);
+        });
+
+        while (target.closeSlots > 0 && closeCandidates.length > 0) {
+          const emp = closeCandidates.shift();
+          scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
+          empHourTotals[emp.id] += closeShift.hours;
+          target.closeSlots--;
+        }
+      });
+
+      // Pass 4: Mid Shifts
+      dailyTargets.forEach(target => {
+        if (target.isClosed) return;
+
+        const midCandidates = employees.filter(e => {
+          if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
+          const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
+          if (isBlackedOut) return false;
+          if (empHourTotals[e.id] + midShift.hours > (e.maxHours || 35)) return false;
+          return true;
+        }).sort((a, b) => {
+          const aScore = (a.anchor === "Mid-Day Stocking" ? -35 : 0) + (a.deliSpecialist ? -15 : 0);
+          const bScore = (b.anchor === "Mid-Day Stocking" ? -35 : 0) + (b.deliSpecialist ? -15 : 0);
+          return (aScore + empHourTotals[a.id]) - (bScore + empHourTotals[b.id]);
+        });
+
+        while (target.midSlots > 0 && midCandidates.length > 0) {
+          const emp = midCandidates.shift();
+          scheduleAssignments[emp.id][target.dayIdx] = { ...midShift, isException: false, isManual: false };
+          empHourTotals[emp.id] += midShift.hours;
+          target.midSlots--;
+        }
+      });
+
+      // Scoring
+      let totalPenaltyScore = 0;
+      employees.forEach(emp => {
+        const diff = Math.abs(empHourTotals[emp.id] - (emp.targetHours || 30));
+        if (diff > 2) {
+          totalPenaltyScore += (diff - 2) * (weights.hourStability || 25);
+        }
+
+        let consecutiveDays = 0;
+        scheduleAssignments[emp.id].forEach((shift, dIdx) => {
+          if (shift.id !== "OFF") {
+            consecutiveDays++;
+            if (!shift.isException) {
+              if (emp.preferredDays && !emp.preferredDays.includes(DAYS_CONFIG[dIdx].key)) {
+                totalPenaltyScore += (weights.preferredShift || 50);
+              }
+              if (emp.anchor === "Opener" && shift.category === "Closing") {
+                totalPenaltyScore += (weights.shiftAnchor || 80);
+              } else if (emp.anchor === "Closing Keyholder" && shift.category === "Morning") {
+                totalPenaltyScore += (weights.shiftAnchor || 80);
+              }
+            }
+          } else {
+            consecutiveDays = 0;
+          }
+          if (consecutiveDays > 5) {
+            totalPenaltyScore += (weights.consecutiveDays || 15);
+          }
+        });
+      });
+
+      const totalAssignedStoreHours = Object.values(empHourTotals).reduce((a, b) => a + b, 0);
+
+      savedSchedules[targetWeekMonday] = {
+        generatedAt: new Date().toISOString(),
+        weekMonday: targetWeekMonday,
+        assignments: scheduleAssignments,
+        empHourTotals,
+        penaltyScore: totalPenaltyScore,
+        totalAssignedHours: totalAssignedStoreHours,
+        isOverBudget: totalAssignedStoreHours > hoursCap
+      };
+
+      saveSchedules();
+      renderScheduleGrid();
+
+      if (showFeedback) {
+        showToast(`Schedule computed for week of ${targetWeekMonday}!`, "emerald");
+      }
+    }
+
+    function renderScheduleGrid() {
+      const schedule = savedSchedules[currentSelectedWeekMonday];
+      const gridBody = document.getElementById('scheduleGridBody');
+      const gridFoot = document.getElementById('scheduleGridFoot');
+      const subTitle = document.getElementById('scheduleDateRangeSubtitle');
+      const diagBar = document.getElementById('solverDiagnosticsBar');
+      const diagText = document.getElementById('solverDiagnosticsText');
+      const scoreBadge = document.getElementById('solverScoreBadge');
+      const hoursBadge = document.getElementById('solverAssignedHoursBadge');
+      const summaryStaff = document.getElementById('summaryTotalStaffCount');
+      const summaryHours = document.getElementById('summaryTotalScheduledHours');
+
+      const weekDates = getWeekDates(currentSelectedWeekMonday);
+
+      weekDates.forEach((wDate, idx) => {
+        const th = document.getElementById(`th_col_${idx}`);
+        if (th) {
+          th.innerHTML = `
+            <div class="flex items-center justify-center gap-1">
+              <span>${wDate.shortDay}</span>
+              <button onclick="openAddPersonToDayModal(${idx})" class="text-indigo-600 hover:text-indigo-900 font-bold p-0.5" title="Add person to ${wDate.shortDay}">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+              </button>
+            </div>
+            <span class="text-[10px] font-normal text-slate-400">${wDate.displayDate}</span>
+          `;
+        }
+      });
+
+      if (subTitle && weekDates.length === 7) {
+        subTitle.textContent = `Week of ${weekDates[0].dayName}, ${weekDates[0].displayDate} - ${weekDates[6].dayName}, ${weekDates[6].displayDate}, 2026`;
+      }
+
+      if (!schedule || !schedule.assignments || Object.keys(schedule.assignments).length === 0) {
+        gridBody.innerHTML = `
+          <tr>
+            <td colspan="9" class="text-center py-12">
+              <div class="flex flex-col items-center justify-center">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+                  <i data-lucide="calendar-plus" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-sm font-bold text-slate-800">No schedule generated for this week yet</h4>
+                <p class="text-xs text-slate-500 mt-1 mb-4">Click "Generate Schedule" to compute optimal shift assignments.</p>
+                <button onclick="runScheduleSolver()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition">
+                  Generate Schedule Now
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (gridFoot) gridFoot.innerHTML = '';
+        if (diagBar) diagBar.classList.add('hidden');
+        if (summaryStaff) summaryStaff.textContent = `${activeRoster.length} Staff Staged`;
+        if (summaryHours) summaryHours.textContent = `0.0 Total Hours`;
+        lucide.createIcons();
+        return;
+      }
+
+      if (diagBar) {
+        diagBar.classList.remove('hidden');
+        scoreBadge.textContent = `Penalty Cost: ${schedule.penaltyScore} pts`;
+        hoursBadge.textContent = `Assigned: ${schedule.totalAssignedHours.toFixed(1)} hrs`;
+        if (schedule.isOverBudget) {
+          diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
+          diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
+        } else {
+          diagText.textContent = `Operational headcount and closing keyholder requirements verified.`;
+          diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
+        }
+      }
+
+      if (summaryStaff) summaryStaff.textContent = `${activeRoster.length} Staff Members`;
+      if (summaryHours) summaryHours.textContent = `${schedule.totalAssignedHours.toFixed(1)} Total Hours`;
+
+      gridBody.innerHTML = '';
+      const dailyAssignedMorning = [0, 0, 0, 0, 0, 0, 0];
+      const dailyAssignedMid = [0, 0, 0, 0, 0, 0, 0];
+      const dailyAssignedClose = [0, 0, 0, 0, 0, 0, 0];
+      const dailyKeyholderClosing = [0, 0, 0, 0, 0, 0, 0];
+
+      activeRoster.forEach(emp => {
+        const shifts = schedule.assignments[emp.id] || new Array(7).fill(null).map(() => ({ ...getShiftDefinition("OFF") }));
+        const totalEmpHours = schedule.empHourTotals[emp.id] || 0;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/70 transition border-b border-slate-100";
+
+        let roleBadges = '';
+        if (emp.keyholder) roleBadges += '<span class="inline-flex items-center text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded-md">Key</span> ';
+        if (emp.soloEligible) roleBadges += '<span class="inline-flex items-center text-[9px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded-md">Solo</span> ';
+
+        let cellsHtml = `
+          <td class="py-3 px-3 sticky left-0 bg-white z-10 border-r border-slate-200">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
+                ${emp.name.charAt(0).toUpperCase()}
+              </div>
+              <div class="truncate">
+                <div class="font-bold text-slate-900 truncate">${escapeHtml(emp.name)}</div>
+                <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                  ${roleBadges}
+                  <span>${emp.anchor || 'Flex'}</span>
+                </div>
+              </div>
+            </div>
+          </td>
+        `;
+
+        shifts.forEach((shift, dayIdx) => {
+          if (shift.category === "Morning") dailyAssignedMorning[dayIdx]++;
+          if (shift.category === "Mid") dailyAssignedMid[dayIdx]++;
+          if (shift.category === "Closing") {
+            dailyAssignedClose[dayIdx]++;
+            if (emp.keyholder) dailyKeyholderClosing[dayIdx]++;
+          }
+
+          const dateStr = weekDates[dayIdx].dateStr;
+          const isBlackedOut = (emp.unavailability || []).some(u => u.date === dateStr);
+
+          let shiftBox = '';
+          if (isBlackedOut) {
+            shiftBox = `
+              <div onclick="openCellEditModal('${emp.id}', ${dayIdx})" class="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-center cursor-pointer hover:ring-2 hover:ring-rose-300 transition select-none">
+                <div class="text-[11px]">PTO / OFF</div>
+                <div class="text-[9px] font-medium text-rose-500">Unavailable</div>
+              </div>
+            `;
+          } else if (shift.id === "OFF") {
+            shiftBox = `
+              <div onclick="openCellEditModal('${emp.id}', ${dayIdx})" class="p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 font-medium text-center cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition select-none">
+                <div class="text-[11px]">OFF</div>
+                <div class="text-[9px] text-slate-300">+ Click to Add</div>
+              </div>
+            `;
+          } else {
+            shiftBox = `
+              <div onclick="openCellEditModal('${emp.id}', ${dayIdx})" class="p-2 rounded-xl border font-bold text-center shadow-2xs cursor-pointer hover:ring-2 hover:ring-indigo-400 transition select-none ${shift.badgeClass || 'bg-indigo-100 text-indigo-900 border-indigo-300'}">
+                <div class="text-[11px] flex items-center justify-center gap-1">
+                  ${escapeHtml(shift.label)}
+                  ${shift.category === 'Closing' && emp.keyholder ? '<i data-lucide="key-round" class="w-3 h-3 text-amber-700"></i>' : ''}
+                </div>
+                <div class="text-[9px] font-normal opacity-90">${shift.time}</div>
+                ${shift.isException ? '<span class="inline-block mt-0.5 px-1 rounded text-[8px] font-black bg-indigo-700 text-white tracking-wider">EXEMPT</span>' : ''}
+                ${shift.isManual && !shift.isException ? '<span class="inline-block mt-0.5 px-1 rounded text-[8px] font-bold bg-slate-700 text-white">EDIT</span>' : ''}
+              </div>
+            `;
+          }
+
+          cellsHtml += `<td class="p-1.5 align-middle">${shiftBox}</td>`;
+        });
+
+        const isOverMax = totalEmpHours > (emp.maxHours || 35);
+        cellsHtml += `
+          <td class="py-3 px-3 text-right font-black border-l border-slate-200 bg-slate-50/50">
+            <span class="${isOverMax ? 'text-rose-600' : 'text-slate-800'}">${totalEmpHours.toFixed(1)}h</span>
+            <div class="text-[10px] text-slate-400 font-normal">Target: ${emp.targetHours || 30}h</div>
+          </td>
+        `;
+
+        tr.innerHTML = cellsHtml;
+        gridBody.appendChild(tr);
+      });
+
+      let footHtml = `
+        <tr class="bg-indigo-50/40 text-indigo-950 font-bold border-t border-indigo-100">
+          <td class="py-2.5 px-3 sticky left-0 bg-indigo-50/90 z-10 border-r border-slate-200">
+            Pref. Morning (${dailyAssignedMorning.reduce((a,b)=>a+b,0)} assigned)
+          </td>
+          ${dailyTargetsCells(dailyAssignedMorning, 'prefMorning')}
+          <td class="py-2 px-3 text-right font-bold text-indigo-900 border-l border-slate-200">--</td>
+        </tr>
+
+        <tr class="bg-indigo-50/40 text-indigo-950 font-bold border-t border-indigo-100">
+          <td class="py-2.5 px-3 sticky left-0 bg-indigo-50/90 z-10 border-r border-slate-200">
+            Pref. Mid (${dailyAssignedMid.reduce((a,b)=>a+b,0)} assigned)
+          </td>
+          ${dailyTargetsCells(dailyAssignedMid, 'prefMid')}
+          <td class="py-2 px-3 text-right font-bold text-indigo-900 border-l border-slate-200">--</td>
+        </tr>
+
+        <tr class="bg-indigo-50/40 text-indigo-950 font-bold border-t border-indigo-100">
+          <td class="py-2.5 px-3 sticky left-0 bg-indigo-50/90 z-10 border-r border-slate-200">
+            Pref. Close (${dailyAssignedClose.reduce((a,b)=>a+b,0)} assigned)
+          </td>
+          ${dailyTargetsCells(dailyAssignedClose, 'prefClose')}
+          <td class="py-2 px-3 text-right font-bold text-indigo-900 border-l border-slate-200">--</td>
+        </tr>
+
+        <tr class="bg-amber-50/60 text-amber-950 font-bold border-t border-amber-200">
+          <td class="py-2.5 px-3 sticky left-0 bg-amber-50/95 z-10 border-r border-slate-200 flex items-center gap-1.5">
+            <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-700"></i>
+            Closing Keyholder Status
+          </td>
+          ${dailyKeyholderCells(dailyKeyholderClosing)}
+          <td class="py-2 px-3 text-right font-black text-amber-900 border-l border-slate-200">Verified</td>
+        </tr>
+      `;
+
+      gridFoot.innerHTML = footHtml;
+      lucide.createIcons();
+    }
+
+    function dailyTargetsCells(assignedArr, prefKey) {
+      return assignedArr.map((actual, idx) => {
+        const opDay = storeConfig.operatingHours[idx] || {};
+        const pref = opDay[prefKey] ?? 2;
+        const isClosed = opDay.isClosed;
+
+        if (isClosed) {
+          return `<td class="py-2 px-2 text-center text-slate-400 font-normal">Closed</td>`;
+        }
+        const delta = actual - pref;
+        let badge = "";
+        if (delta === 0) {
+          badge = `<span class="text-emerald-700 font-bold">${actual} / ${pref} &#10003;</span>`;
+        } else if (delta < 0) {
+          badge = `<span class="text-amber-700 font-bold">${actual} / ${pref} (-${Math.abs(delta)})</span>`;
+        } else {
+          badge = `<span class="text-indigo-700 font-bold">${actual} / ${pref} (+${delta})</span>`;
+        }
+        return `<td class="py-2 px-2 text-center text-[10px]">${badge}</td>`;
+      }).join('');
+    }
+
+    function dailyKeyholderCells(closingKeysArr) {
+      const minRequired = storeConfig.operationalConstraints?.minClosingKeyholders || 1;
+      return closingKeysArr.map((count, idx) => {
+        const opDay = storeConfig.operatingHours[idx] || {};
+        if (opDay.isClosed) {
+          return `<td class="py-2 px-2 text-center text-slate-400 font-normal">Closed</td>`;
+        }
+        const meetsPolicy = count >= minRequired;
+        return `
+          <td class="py-2 px-2 text-center text-[10px]">
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${meetsPolicy ? 'text-emerald-800 bg-emerald-100/70' : 'text-rose-800 bg-rose-100 font-bold'}">
+              ${count} Lead${count !== 1 ? 's' : ''} ${meetsPolicy ? '&#10003;' : '&#9888;'}
+            </span>
+          </td>
+        `;
+      }).join('');
+    }
+
+    function openCellEditModal(empId, dayIdx) {
+      const schedule = savedSchedules[currentSelectedWeekMonday];
+      if (!schedule || !schedule.assignments[empId]) return;
+
+      const emp = activeRoster.find(e => e.id === empId);
+      const shift = schedule.assignments[empId][dayIdx] || getShiftDefinition("OFF");
+      const weekDates = getWeekDates(currentSelectedWeekMonday);
+      const dateObj = weekDates[dayIdx];
+
+      activeEditContext = { empId, dayIdx, weekMonday: currentSelectedWeekMonday };
+
+      document.getElementById('cellModalEmpName').textContent = `Adjust Shift for ${emp?.name || 'Staff'}`;
+      document.getElementById('cellModalDayLabel').textContent = `${dateObj.dayName}, ${dateObj.displayDate} (2026)`;
+
+      const select = document.getElementById('cellShiftTemplateSelect');
+      select.innerHTML = '<option value="OFF">-- Mark as OFF --</option>';
+      (storeConfig.shiftLabels || []).forEach(lbl => {
+        const isSelected = shift.id === lbl.id;
+        const opt = document.createElement('option');
+        opt.value = lbl.id;
+        opt.textContent = `${lbl.name} (${formatTime12(lbl.startTime)} - ${formatTime12(lbl.endTime)} • ${lbl.hours}h)`;
+        if (isSelected) opt.selected = true;
+        select.appendChild(opt);
+      });
+      const customOpt = document.createElement('option');
+      customOpt.value = "CUSTOM";
+      customOpt.textContent = "Custom Times...";
+      select.appendChild(customOpt);
+
+      if (shift.id === "OFF") {
+        select.value = "OFF";
+        document.getElementById('cellShiftStart').value = "09:00";
+        document.getElementById('cellShiftEnd').value = "17:00";
+        document.getElementById('cellShiftHoursPreview').textContent = "0.0 hrs";
+      } else {
+        document.getElementById('cellShiftStart').value = shift.startTime || "09:00";
+        document.getElementById('cellShiftEnd').value = shift.endTime || "17:00";
+        document.getElementById('cellShiftHoursPreview').textContent = `${shift.hours || 7.5} hrs`;
+      }
+
+      document.getElementById('cellWeightExemptionCheckbox').checked = Boolean(shift.isException);
+
+      document.getElementById('cellEditModalBackdrop').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeCellEditModal() {
+      document.getElementById('cellEditModalBackdrop').classList.add('hidden');
+      activeEditContext = null;
+    }
+
+    function onCellTemplateSelected(val) {
+      if (val === "OFF") {
+        document.getElementById('cellShiftHoursPreview').textContent = "0.0 hrs";
+      } else if (val === "CUSTOM") {
+        calcCellDuration();
+      } else {
+        const match = (storeConfig.shiftLabels || []).find(s => s.id === val);
+        if (match) {
+          document.getElementById('cellShiftStart').value = match.startTime;
+          document.getElementById('cellShiftEnd').value = match.endTime;
+          document.getElementById('cellShiftHoursPreview').textContent = `${match.hours} hrs`;
+        }
+      }
+    }
+
+    function calcCellDuration() {
+      const s = document.getElementById('cellShiftStart').value;
+      const e = document.getElementById('cellShiftEnd').value;
+      const diff = computeDurationHours(s, e);
+      document.getElementById('cellShiftHoursPreview').textContent = `${diff} hrs`;
+    }
+
+    function setCellToOff() {
+      if (!activeEditContext) return;
+      const { empId, dayIdx, weekMonday } = activeEditContext;
+      const schedule = savedSchedules[weekMonday];
+      if (!schedule) return;
+
+      schedule.assignments[empId][dayIdx] = {
+        ...getShiftDefinition("OFF"),
+        isException: false,
+        isManual: true
+      };
+
+      recalculateScheduleTotals(schedule);
+      saveSchedules();
+      renderScheduleGrid();
+      closeCellEditModal();
+      showToast("Shift updated to OFF.", "slate");
+    }
+
+    function saveCellAdjustment() {
+      if (!activeEditContext) return;
+      const { empId, dayIdx, weekMonday } = activeEditContext;
+      const schedule = savedSchedules[weekMonday];
+      if (!schedule) return;
+
+      const templateVal = document.getElementById('cellShiftTemplateSelect').value;
+      const isExempt = document.getElementById('cellWeightExemptionCheckbox').checked;
+      const sTime = document.getElementById('cellShiftStart').value;
+      const eTime = document.getElementById('cellShiftEnd').value;
+      const duration = computeDurationHours(sTime, eTime);
+
+      if (templateVal === "OFF") {
+        schedule.assignments[empId][dayIdx] = {
+          ...getShiftDefinition("OFF"),
+          isException: false,
+          isManual: true
+        };
+      } else {
+        let baseDef = (storeConfig.shiftLabels || []).find(s => s.id === templateVal);
+        let category = baseDef ? baseDef.category : "Mid";
+        let color = baseDef ? baseDef.color : "indigo";
+        let labelName = baseDef ? baseDef.name : "Custom";
+
+        schedule.assignments[empId][dayIdx] = {
+          id: templateVal === "CUSTOM" ? "SHIFT_CUSTOM" : templateVal,
+          label: labelName,
+          time: `${formatTime12(sTime)} - ${formatTime12(eTime)}`,
+          startTime: sTime,
+          endTime: eTime,
+          hours: duration,
+          category,
+          badgeClass: COLOR_CLASSES[color] || COLOR_CLASSES.indigo,
+          isException: isExempt,
+          isManual: true
+        };
+      }
+
+      recalculateScheduleTotals(schedule);
+      saveSchedules();
+      renderScheduleGrid();
+      closeCellEditModal();
+      showToast(isExempt ? "Shift updated with Weight Exception active!" : "Shift updated successfully.", "emerald");
+    }
+
+    function openAddPersonToDayModal(presetDayIdx = null) {
+      const schedule = savedSchedules[currentSelectedWeekMonday];
+      if (!schedule) {
+        showToast("Please generate a schedule first.", "amber");
+        return;
+      }
+
+      const weekDates = getWeekDates(currentSelectedWeekMonday);
+      const daySelect = document.getElementById('addPersonTargetDay');
+      daySelect.innerHTML = '';
+      weekDates.forEach((d, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${d.dayName} (${d.displayDate})`;
+        if (presetDayIdx !== null && presetDayIdx === idx) opt.selected = true;
+        daySelect.appendChild(opt);
+      });
+
+      const empSelect = document.getElementById('addPersonTargetEmp');
+      empSelect.innerHTML = '';
+      activeRoster.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.textContent = `${emp.name} (${emp.anchor})`;
+        empSelect.appendChild(opt);
+      });
+
+      const shiftSelect = document.getElementById('addPersonTargetShift');
+      shiftSelect.innerHTML = '';
+      (storeConfig.shiftLabels || []).forEach(lbl => {
+        const opt = document.createElement('option');
+        opt.value = lbl.id;
+        opt.textContent = `${lbl.name} (${formatTime12(lbl.startTime)} - ${formatTime12(lbl.endTime)})`;
+        shiftSelect.appendChild(opt);
+      });
+
+      document.getElementById('addPersonDayModalBackdrop').classList.remove('hidden');
+    }
+
+    function closeAddPersonDayModal() {
+      document.getElementById('addPersonDayModalBackdrop').classList.add('hidden');
+    }
+
+    function handleAddPersonToDaySubmit(e) {
+      e.preventDefault();
+      const schedule = savedSchedules[currentSelectedWeekMonday];
+      if (!schedule) return;
+
+      const dayIdx = Number(document.getElementById('addPersonTargetDay').value);
+      const empId = document.getElementById('addPersonTargetEmp').value;
+      const shiftId = document.getElementById('addPersonTargetShift').value;
+      const isExempt = document.getElementById('addPersonWeightExempt').checked;
+
+      const shiftDef = getShiftDefinition(shiftId);
+      const emp = activeRoster.find(a => a.id === empId);
+
+      schedule.assignments[empId][dayIdx] = {
+        ...shiftDef,
+        isException: isExempt,
+        isManual: true
+      };
+
+      recalculateScheduleTotals(schedule);
+      saveSchedules();
+      renderScheduleGrid();
+      closeAddPersonDayModal();
+      showToast(`Added ${emp?.name || 'Staff'} to ${DAYS_CONFIG[dayIdx].full}!`, "emerald");
+    }
+
+    function recalculateScheduleTotals(schedule) {
+      const weights = storeConfig.consistencyWeights || { dayOfWeek: 100, shiftAnchor: 80, preferredShift: 50, hourStability: 25, consecutiveDays: 15 };
+      const hoursCap = storeConfig.operationalConstraints?.manHourCap || 205;
+
+      schedule.empHourTotals = {};
+      activeRoster.forEach(emp => {
+        schedule.empHourTotals[emp.id] = 0;
+      });
+
+      Object.keys(schedule.assignments).forEach(empId => {
+        let total = 0;
+        (schedule.assignments[empId] || []).forEach(shift => {
+          total += (Number(shift.hours) || 0);
+        });
+        schedule.empHourTotals[empId] = total;
+      });
+
+      let penalty = 0;
+      activeRoster.forEach(emp => {
+        const empHours = schedule.empHourTotals[emp.id] || 0;
+        const diff = Math.abs(empHours - (emp.targetHours || 30));
+        if (diff > 2) {
+          penalty += (diff - 2) * (weights.hourStability || 25);
+        }
+
+        let consec = 0;
+        (schedule.assignments[emp.id] || []).forEach((shift, dIdx) => {
+          if (shift.id !== "OFF") {
+            consec++;
+            if (!shift.isException) {
+              if (emp.preferredDays && !emp.preferredDays.includes(DAYS_CONFIG[dIdx].key)) {
+                penalty += (weights.preferredShift || 50);
+              }
+              if (emp.anchor === "Opener" && shift.category === "Closing") {
+                penalty += (weights.shiftAnchor || 80);
+              } else if (emp.anchor === "Closing Keyholder" && shift.category === "Morning") {
+                penalty += (weights.shiftAnchor || 80);
+              }
+            }
+          } else {
+            consec = 0;
+          }
+          if (consec > 5) {
+            penalty += (weights.consecutiveDays || 15);
+          }
+        });
+      });
+
+      const totalStoreHours = Object.values(schedule.empHourTotals).reduce((a, b) => a + b, 0);
+      schedule.penaltyScore = penalty;
+      schedule.totalAssignedHours = totalStoreHours;
+      schedule.isOverBudget = totalStoreHours > hoursCap;
+    }
+
+    function printOrExportSchedule() {
+      window.print();
+    }
+
+    function openMasterModal() {
+      const fullSystemExport = {
+        systemVersion: "4.3",
+        exportedAt: new Date().toISOString(),
+        masterDirectory,
+        activeRoster,
+        storeSettings: storeConfig,
+        savedSchedules
+      };
+
+      document.getElementById('masterRawJsonPreview').value = JSON.stringify(fullSystemExport, null, 2);
+      document.getElementById('masterModalBackdrop').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeMasterModal() {
+      document.getElementById('masterModalBackdrop').classList.add('hidden');
+    }
+
+    function downloadMasterJson() {
+      const fullSystemExport = {
+        systemVersion: "4.3",
+        exportedAt: new Date().toISOString(),
+        masterDirectory,
+        activeRoster,
+        storeSettings: storeConfig,
+        savedSchedules
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullSystemExport, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `schedule_config_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Downloaded complete system configuration JSON!", "emerald");
+    }
+
+    function uploadMasterJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.masterDirectory && Array.isArray(parsed.masterDirectory)) {
+            masterDirectory = parsed.masterDirectory;
+          }
+          if (parsed.activeRoster && Array.isArray(parsed.activeRoster)) {
+            activeRoster = parsed.activeRoster;
+          }
+          if (parsed.storeSettings) {
+            storeConfig = parsed.storeSettings;
+            if (!storeConfig.shiftLabels || storeConfig.shiftLabels.length === 0) {
+              storeConfig.shiftLabels = JSON.parse(JSON.stringify(FACTORY_SHIFT_LABELS));
+            }
+          }
+          if (parsed.savedSchedules) {
+            savedSchedules = parsed.savedSchedules;
+          }
+          saveMasterDirectory();
+          saveActiveRoster();
+          saveStoreConfig();
+          saveSchedules();
+          syncSettingsFormControls();
+          openMasterModal();
+          renderScheduleGrid();
+          showToast("System state imported and restored successfully!", "emerald");
+        } catch (err) {
+          showToast("Failed to parse JSON file.", "rose");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function restoreDefaultsConfirm() {
+      masterDirectory = JSON.parse(JSON.stringify(FACTORY_PRESETS));
+      activeRoster = JSON.parse(JSON.stringify(masterDirectory));
+      storeConfig = JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
+      savedSchedules = {};
+
+      saveMasterDirectory();
+      saveActiveRoster();
+      saveStoreConfig();
+      saveSchedules();
+      syncSettingsFormControls();
+      generateScheduleForWeek(currentSelectedWeekMonday, false);
+      openMasterModal();
+      showToast("Factory settings restored for all tabs.", "emerald");
+    }
+
+    let toastTimeout = null;
+    function showToast(message, type = "slate", duration = 3000) {
+      const container = document.getElementById('toastNotification');
+      const content = document.getElementById('toastContent');
+      const msg = document.getElementById('toastMessage');
+
+      clearTimeout(toastTimeout);
+
+      let styleClasses = "bg-slate-900 text-white border-slate-800";
+      if (type === "emerald") styleClasses = "bg-emerald-600 text-white border-emerald-700";
+      if (type === "rose") styleClasses = "bg-rose-600 text-white border-rose-700";
+      if (type === "amber") styleClasses = "bg-amber-600 text-white border-amber-700";
+
+      content.className = `p-3.5 rounded-2xl border shadow-xl flex items-center justify-between text-xs sm:text-sm font-semibold transition ${styleClasses}`;
+      msg.textContent = message;
+      container.classList.remove('hidden');
+
+      toastTimeout = setTimeout(() => {
+        dismissToast();
+      }, duration);
+    }
+
+    function dismissToast() {
+      document.getElementById('toastNotification').classList.add('hidden');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initApp();
+    });
+  </script>
+</body>
+</html>
