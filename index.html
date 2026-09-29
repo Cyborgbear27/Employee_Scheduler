@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.2</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.3</span>
           </div>
-          <p class="text-xs text-slate-500">Dynamic Shift Label Preferences & Roster Optimization</p>
+          <p class="text-xs text-slate-500">Auto-Derived Shift Categories & Preference-Linked Roster Engine</p>
         </div>
       </div>
 
@@ -136,13 +136,13 @@
 
       <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Configured Shifts</span>
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Shift Templates</span>
           <div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
             <i data-lucide="tags" class="w-4 h-4"></i>
           </div>
         </div>
         <div class="text-2xl font-black text-slate-900 mt-2" id="metricShiftLabelsCount">3</div>
-        <p class="text-[11px] text-slate-400 mt-0.5">Assigned to preference picker</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Configured shift labels</p>
       </div>
 
       <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
@@ -166,7 +166,7 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily preferences mapped to configured shift labels.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily preferences linked directly to shift templates.</p>
           </div>
         </div>
 
@@ -308,7 +308,7 @@
               <i data-lucide="tags" class="w-4 h-4 text-indigo-600"></i>
               Shift Labels & Working Hours Templates
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Customize default shift times or create custom labels. These labels automatically populate as selectable preference options on all employee profiles.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Customize default shift times or create custom labels. Operational categories (Morning, Mid, Closing) are derived automatically from the shift times.</p>
           </div>
           <button onclick="openNewShiftModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -706,32 +706,27 @@
           </div>
         </div>
 
-        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-          <span class="text-slate-500 font-medium">Calculated Duration:</span>
-          <span class="font-black text-slate-800" id="shiftEditDurationPreview">7.5 hrs</span>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-center">
+            <span class="text-slate-400 text-[10px] uppercase font-bold">Duration</span>
+            <span class="font-black text-slate-800 text-sm" id="shiftEditDurationPreview">7.5 hrs</span>
+          </div>
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-center">
+            <span class="text-slate-400 text-[10px] uppercase font-bold">Auto-Category</span>
+            <span class="font-bold text-indigo-700 text-xs" id="shiftEditCategoryBadge">Morning</span>
+          </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category Bucket</label>
-            <select id="shiftEditCategory" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-2.5 py-2">
-              <option value="Morning">Morning (Opening)</option>
-              <option value="Mid">Mid (Swing Overlap)</option>
-              <option value="Closing">Closing (Night Lock)</option>
-              <option value="Support">Support / Float</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color Theme</label>
-            <select id="shiftEditColor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-2.5 py-2">
-              <option value="amber">Amber / Gold</option>
-              <option value="sky">Sky Blue</option>
-              <option value="indigo">Indigo / Violet</option>
-              <option value="emerald">Emerald Green</option>
-              <option value="purple">Purple</option>
-              <option value="rose">Rose</option>
-            </select>
-          </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color Theme</label>
+          <select id="shiftEditColor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-2.5 py-2">
+            <option value="amber">Amber / Gold</option>
+            <option value="sky">Sky Blue</option>
+            <option value="indigo">Indigo / Violet</option>
+            <option value="emerald">Emerald Green</option>
+            <option value="purple">Purple</option>
+            <option value="rose">Rose</option>
+          </select>
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
@@ -1000,6 +995,25 @@
     let activeEditContext = null;
     let newMasterPrefsState = {};
 
+    // Helper: Derives operational category automatically from time boundaries
+    function deriveShiftCategory(startTime, endTime) {
+      if (!startTime || !endTime) return 'Support';
+      const [sH, sM] = startTime.split(':').map(Number);
+      const [eH, eM] = endTime.split(':').map(Number);
+      const startDec = sH + sM / 60;
+      const endDec = eH + eM / 60;
+
+      // Ends at or after 9:00 PM (21:00) or wraps past midnight
+      if (endDec >= 21.0 || (endDec < startDec && endDec >= 0)) {
+        return 'Closing';
+      }
+      // Starts at or before 9:00 AM
+      if (startDec <= 9.0) {
+        return 'Morning';
+      }
+      return 'Mid';
+    }
+
     // Baseline profiles mapped to live shift IDs
     const FACTORY_PRESETS = [
       { 
@@ -1057,7 +1071,6 @@
       if (!dayPrefs || dayPrefs.length === 0) return false;
       if (dayPrefs.includes(shift.id)) return true;
       if (dayPrefs.includes(shift.name)) return true;
-      // Legacy compatibility
       if (shift.category === 'Morning' && (dayPrefs.includes('Morning') || dayPrefs.includes('Open'))) return true;
       if (shift.category === 'Mid' && (dayPrefs.includes('Mid') || dayPrefs.includes('Swing'))) return true;
       if (shift.category === 'Closing' && (dayPrefs.includes('Night') || dayPrefs.includes('Close'))) return true;
@@ -1084,7 +1097,7 @@
                     const letter = s.name.charAt(0).toUpperCase();
                     if (readOnly) {
                       return `
-                        <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}" title="${s.name} (${s.startTime}-${s.endTime})">
+                        <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}" title="${s.name} (${s.startTime}-${s.endTime} &bull; ${s.category})">
                           ${letter}
                         </span>
                       `;
@@ -1092,7 +1105,7 @@
                     return `
                       <label class="flex items-center justify-center p-1 rounded text-[10px] font-bold cursor-pointer transition select-none ${
                         checked ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
-                      }" title="${s.name} (${s.startTime}-${s.endTime})">
+                      }" title="${s.name} (${s.startTime}-${s.endTime} &bull; ${s.category})">
                         <input type="checkbox" class="sr-only" ${checked ? 'checked' : ''} 
                                onchange="${changeCallbackName}('${d.key}', '${s.id}', this.checked)">
                         <span>${letter}</span>
@@ -1106,7 +1119,7 @@
         </div>
         <div class="flex flex-wrap justify-between items-center text-[10px] text-slate-400 mt-1.5 px-1 gap-2">
           <div class="flex items-center gap-2 flex-wrap">
-            ${configuredShifts.map(s => `<span><strong>${s.name.charAt(0).toUpperCase()}</strong>: ${s.name}</span>`).join('&bull; ')}
+            ${configuredShifts.map(s => `<span><strong>${s.name.charAt(0).toUpperCase()}</strong>: ${s.name} <em class="opacity-75">(${s.category})</em></span>`).join('&bull; ')}
           </div>
           <span>Unselected column = Day OFF</span>
         </div>
@@ -1119,6 +1132,11 @@
         storeConfig = storedConfig ? JSON.parse(storedConfig) : JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
         if (!storeConfig.shiftLabels || storeConfig.shiftLabels.length === 0) {
           storeConfig.shiftLabels = JSON.parse(JSON.stringify(FACTORY_SHIFT_LABELS));
+        } else {
+          // Normalize and verify categories against current times
+          storeConfig.shiftLabels.forEach(s => {
+            s.category = deriveShiftCategory(s.startTime, s.endTime);
+          });
         }
       } catch (e) {
         storeConfig = JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
@@ -1148,7 +1166,6 @@
       buildWeekDropdown();
       syncSettingsFormControls();
       
-      // Default creation form preference to all shifts Mon-Fri
       const defaultShifts = (storeConfig.shiftLabels || []).map(s => s.id);
       DAYS_CONFIG.forEach(d => {
         newMasterPrefsState[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...defaultShifts];
@@ -1192,7 +1209,6 @@
       renderHolidayExceptions();
       renderShiftLabelsList();
       renderDynamicShiftLegend();
-      // Re-render matrices when shift labels change
       renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
       renderMasterDirectory();
       renderActiveRoster();
@@ -1390,7 +1406,6 @@
       emp.trainee = document.getElementById('editEmpTrainee').checked;
       emp.preferredWindows = JSON.parse(JSON.stringify(editEmpPrefsState));
 
-      // Sync active staged record if present
       const stagedIdx = activeRoster.findIndex(a => a.id === id || a.name.toLowerCase() === emp.name.toLowerCase());
       if (stagedIdx > -1) {
         activeRoster[stagedIdx].name = emp.name;
@@ -1719,7 +1734,7 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
                 ${escapeHtml(shift.name)}
               </span>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">${shift.category || 'Shift'}</span>
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">${shift.category}</span>
             </div>
 
             <div class="mt-3 flex items-baseline justify-between">
@@ -1781,7 +1796,6 @@
       document.getElementById('shiftEditName').value = "";
       document.getElementById('shiftEditStart').value = "09:00";
       document.getElementById('shiftEditEnd').value = "17:00";
-      document.getElementById('shiftEditCategory').value = "Mid";
       document.getElementById('shiftEditColor').value = "purple";
       calculateShiftModalHours();
       document.getElementById('shiftLabelModalBackdrop').classList.remove('hidden');
@@ -1795,7 +1809,6 @@
       document.getElementById('shiftEditName').value = shift.name;
       document.getElementById('shiftEditStart').value = shift.startTime;
       document.getElementById('shiftEditEnd').value = shift.endTime;
-      document.getElementById('shiftEditCategory').value = shift.category || "Morning";
       document.getElementById('shiftEditColor').value = shift.color || "indigo";
       calculateShiftModalHours();
       document.getElementById('shiftLabelModalBackdrop').classList.remove('hidden');
@@ -1809,7 +1822,11 @@
       const s = document.getElementById('shiftEditStart').value;
       const e = document.getElementById('shiftEditEnd').value;
       const hours = computeDurationHours(s, e);
+      const cat = deriveShiftCategory(s, e);
+
       document.getElementById('shiftEditDurationPreview').textContent = `${hours} hrs`;
+      document.getElementById('shiftEditCategoryBadge').textContent = 
+        cat === 'Mid' ? 'Mid (Swing)' : cat;
     }
 
     function handleSaveShiftLabel(e) {
@@ -1818,9 +1835,9 @@
       const name = (document.getElementById('shiftEditName').value || '').trim();
       const startTime = document.getElementById('shiftEditStart').value;
       const endTime = document.getElementById('shiftEditEnd').value;
-      const category = document.getElementById('shiftEditCategory').value;
       const color = document.getElementById('shiftEditColor').value;
       const hours = computeDurationHours(startTime, endTime);
+      const category = deriveShiftCategory(startTime, endTime);
 
       if (!name) return;
       if (!storeConfig.shiftLabels) storeConfig.shiftLabels = [];
@@ -1851,7 +1868,7 @@
 
       saveStoreConfig();
       closeShiftLabelModal();
-      showToast(`Saved shift definition "${name}"! Preference pickers updated.`, "emerald");
+      showToast(`Saved shift "${name}" as a ${category} shift template.`, "emerald");
     }
 
     function deleteShiftLabel(index) {
@@ -2222,17 +2239,14 @@
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
           return true;
         }).sort((a, b) => {
-          // Balance closing counts across keyholders
           const aCloses = scheduleAssignments[a.id].filter(s => s.category === "Closing").length;
           const bCloses = scheduleAssignments[b.id].filter(s => s.category === "Closing").length;
           if (aCloses !== bCloses) return aCloses - bCloses;
 
-          // Shift preference score
           const aScore = evaluateShiftPreferenceCost(a, dayKey, closeShift);
           const bScore = evaluateShiftPreferenceCost(b, dayKey, closeShift);
           if (aScore !== bScore) return aScore - bScore;
 
-          // Balance towards target hours
           return (empHourTotals[a.id] - a.targetHours) - (empHourTotals[b.id] - b.targetHours);
         });
 
@@ -2729,7 +2743,7 @@
         };
       } else {
         let baseDef = (storeConfig.shiftLabels || []).find(s => s.id === templateVal);
-        let category = baseDef ? baseDef.category : "Mid";
+        let category = baseDef ? baseDef.category : deriveShiftCategory(sTime, eTime);
         let color = baseDef ? baseDef.color : "indigo";
         let labelName = baseDef ? baseDef.name : "Custom";
 
@@ -2883,7 +2897,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.2",
+        systemVersion: "5.3",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -2903,7 +2917,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.2",
+        systemVersion: "5.3",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
