@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Staff Roster, Store Settings & Schedule Generator</title>
+  <title>Employee_Scheduler</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Inter -->
@@ -36,24 +36,18 @@
   </script>
   <style>
     @media print {
-      body * {
-        visibility: hidden;
-      }
-      #printableScheduleArea, #printableScheduleArea * {
-        visibility: visible;
-      }
+      body * { visibility: hidden; }
+      #printableScheduleArea, #printableScheduleArea * { visibility: visible; }
       #printableScheduleArea {
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
         margin: 0;
-        padding: 10px;
+        padding: 12px;
         background: white;
       }
-      .no-print {
-        display: none !important;
-      }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
@@ -68,14 +62,14 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-base font-bold text-slate-900 leading-tight">RotaOps Schedule Architect</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v4.3</span>
+            <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.0</span>
           </div>
-          <p class="text-xs text-slate-500">Master Directory, Shift Labels, Exceptions & Schedule Editor</p>
+          <p class="text-xs text-slate-500">Day-Window Staff Optimization & Constraint Solver</p>
         </div>
       </div>
 
-      <!-- Navigation Tabs & Master Drawer Trigger -->
+      <!-- Navigation Tabs -->
       <div class="flex items-center gap-2 flex-wrap">
         <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold">
           <button id="tabMasterBtn" onclick="switchView('master')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
@@ -172,31 +166,18 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Define permanent qualifications, default hour limits, and role anchors in the Master Directory.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily shift window preferences (Morning, Mid, Night).</p>
           </div>
         </div>
 
         <form id="newEmployeeForm" onsubmit="handleCreateEmployee(event)" class="mt-4 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div class="md:col-span-4">
+            <div class="md:col-span-6">
               <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Employee Name *</label>
               <input type="text" id="newMasterName" required placeholder="e.g., Marcus Vance" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
 
-            <div class="md:col-span-4">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Default Shift Window Anchor</label>
-              <div class="relative">
-                <select id="newMasterAnchor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl pl-3 pr-8 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none appearance-none">
-                  <option value="Opener">Opener (Early Shift Window)</option>
-                  <option value="Mid-Day Stocking">Mid-Day Stocking & Freight</option>
-                  <option value="Closing Keyholder">Closing Keyholder (Night Lock)</option>
-                  <option value="Flexible" selected>Flexible Swing Shift</option>
-                </select>
-                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
-              </div>
-            </div>
-
-            <div class="md:col-span-4 grid grid-cols-3 gap-2">
+            <div class="md:col-span-6 grid grid-cols-3 gap-2">
               <div>
                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Max Cap</label>
                 <input type="number" id="newMasterMax" min="0" max="60" value="35" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl px-2.5 py-2 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
@@ -236,6 +217,11 @@
                 <span class="font-medium text-slate-800">Trainee</span>
               </label>
             </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Preferred Shift Windows by Day</label>
+            <div id="newMasterPrefMatrix"></div>
           </div>
 
           <div class="flex items-center justify-end gap-3 pt-2">
@@ -319,7 +305,7 @@
               <i data-lucide="tags" class="w-4 h-4 text-indigo-600"></i>
               Shift Labels & Working Hours Templates
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Customize default shift times (Open, Mid, Close) or define custom labels (e.g., Truck Intake, Deli Open) with dedicated time blocks and color styles.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Define shift labels, operational time blocks, and category groupings (Morning, Mid, Closing).</p>
           </div>
           <button onclick="openNewShiftModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -336,9 +322,9 @@
           <div>
             <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
               <i data-lucide="clock" class="w-4 h-4 text-indigo-600"></i>
-              Weekly Operating Hours & Preferred Daily Headcount
+              Weekly Store Hours & Preferred Daily Headcount
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Specify operating windows and configure ideal staffing counts for morning, mid-day, and closing intervals.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Operating schedule and staffing headcount targets by shift window.</p>
           </div>
           <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" id="badgeTotalOpenHours">
             82.0 Operating Hours
@@ -372,7 +358,7 @@
               <i data-lucide="calendar-x-2" class="w-4 h-4 text-rose-600"></i>
               Holiday & Date Exceptions
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Override standard store hours or close the location completely for designated holiday dates.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Override standard store hours or close the location completely for designated dates.</p>
           </div>
         </div>
 
@@ -430,7 +416,7 @@
               <span id="labelBudgetCeiling" class="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">205 hrs</span>
             </div>
             <input type="range" id="inputBudgetCeiling" min="100" max="400" step="5" value="205" oninput="updateStoreConfig('manHourCap', Number(this.value)); document.getElementById('labelBudgetCeiling').textContent = this.value + ' hrs'; document.getElementById('metricBudgetCap').textContent = this.value + ' hrs';" class="w-full accent-indigo-600 cursor-pointer">
-            <p class="text-[11px] text-slate-400 mt-1">The solver penalizes schedule solutions exceeding this hard budget limit.</p>
+            <p class="text-[11px] text-slate-400 mt-1">Penalizes schedule solutions exceeding this hard budget limit.</p>
           </div>
 
           <div>
@@ -441,16 +427,6 @@
             <input type="range" id="inputMinKeyholders" min="1" max="3" step="1" value="1" oninput="updateStoreConfig('minClosingKeyholders', Number(this.value)); document.getElementById('labelMinKeyholders').textContent = this.value + (this.value == 1 ? ' Lead' : ' Leads');" class="w-full accent-amber-600 cursor-pointer">
             <p class="text-[11px] text-slate-400 mt-1">Ensures store lockup is executed by at least one certified keyholder profile.</p>
           </div>
-
-          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-600"></i>
-              Daily Preferred Headcounts
-            </div>
-            <p class="text-xs text-slate-600 leading-relaxed">
-              Preferred staff counts are configured above in the <strong>Weekly Operating Hours</strong> table for each individual day (Morning, Mid, Closing).
-            </p>
-          </div>
         </div>
 
         <div class="lg:col-span-7 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
@@ -459,45 +435,17 @@
               <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-600"></i>
               Schedule Consistency Penalty Weights
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Adjust penalty point costs when a schedule deviates from week-over-week consistency anchors.</p>
-          </div>
-
-          <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-              <i data-lucide="shield-x" class="w-4 h-4"></i>
-            </div>
-            <div class="text-xs">
-              <div class="font-bold text-rose-900">Hard Constraints: Cost = &infin; (Infeasible)</div>
-              <p class="text-rose-700">Exceeding individual max hours or leaving a shift without a keyholder cannot be violated under any weight.</p>
-            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Penalties applied during optimization when shifts deviate from preferences.</p>
           </div>
 
           <div class="space-y-3.5">
             <div>
               <div class="flex items-center justify-between text-xs mb-1">
-                <span class="font-bold text-slate-800">Day-of-Week Consistency</span>
-                <span id="weightVal_day" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">100 pts / day changed</span>
-              </div>
-              <input type="range" min="0" max="250" step="10" value="100" oninput="updateWeight('dayOfWeek', this.value, 'weightVal_day', 'pts / day changed')" class="w-full accent-indigo-600 cursor-pointer">
-              <p class="text-[11px] text-slate-400">Penalizes shifting someone off their usual days (e.g. keeping Wed/Fri scheduled).</p>
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between text-xs mb-1">
-                <span class="font-bold text-slate-800">Shift Window Anchor (Morning vs Night)</span>
-                <span id="weightVal_anchor" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">80 pts / shift swap</span>
-              </div>
-              <input type="range" min="0" max="250" step="10" value="80" oninput="updateWeight('shiftAnchor', this.value, 'weightVal_anchor', 'pts / shift swap')" class="w-full accent-indigo-600 cursor-pointer">
-              <p class="text-[11px] text-slate-400">Penalizes rotating an Opener to Close or a Closer to Early Morning.</p>
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between text-xs mb-1">
-                <span class="font-bold text-slate-800">Preferred Shift Selection</span>
+                <span class="font-bold text-slate-800">Preferred Window Deviation</span>
                 <span id="weightVal_pref" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">50 pts / violation</span>
               </div>
               <input type="range" min="0" max="200" step="5" value="50" oninput="updateWeight('preferredShift', this.value, 'weightVal_pref', 'pts / violation')" class="w-full accent-indigo-600 cursor-pointer">
-              <p class="text-[11px] text-slate-400">Penalizes assigning shifts outside an employee's selected preferred days.</p>
+              <p class="text-[11px] text-slate-400">Penalizes assigning someone outside their configured Morning / Mid / Night choices.</p>
             </div>
 
             <div>
@@ -605,7 +553,7 @@
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-50/90 text-slate-700 border-b border-slate-200 uppercase font-bold tracking-wider text-[11px]">
-                <th class="py-3 px-3 min-w-[170px] sticky left-0 bg-slate-50 z-10 border-r border-slate-200">Employee & Role</th>
+                <th class="py-3 px-3 min-w-[170px] sticky left-0 bg-slate-50 z-10 border-r border-slate-200">Employee & Roles</th>
                 <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_0">Mon<br><span class="text-[10px] font-normal text-slate-400">Sep 28</span></th>
                 <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_1">Tue<br><span class="text-[10px] font-normal text-slate-400">Sep 29</span></th>
                 <th class="py-3 px-2 min-w-[130px] text-center" id="th_col_2">Wed<br><span class="text-[10px] font-normal text-slate-400">Sep 30</span></th>
@@ -636,7 +584,7 @@
 
   </main>
 
-  <!-- MODAL: EDIT EMPLOYEE PROFILE (RESTORED TO MASTER DIRECTORY) -->
+  <!-- MODAL: EDIT EMPLOYEE PROFILE -->
   <div id="editEmployeeModalBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -646,7 +594,7 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Edit Master Employee Profile</h3>
-            <p class="text-[11px] text-slate-500">Updates the permanent record and synchronizes active staging.</p>
+            <p class="text-[11px] text-slate-500">Updates profile parameters and preferred daily shift windows.</p>
           </div>
         </div>
         <button onclick="closeEditEmployeeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
@@ -656,18 +604,9 @@
         <input type="hidden" id="editEmpId">
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
+          <div class="sm:col-span-2">
             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Employee Name *</label>
             <input type="text" id="editEmpName" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shift Window Anchor</label>
-            <select id="editEmpAnchor" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2">
-              <option value="Opener">Opener (Early Shift Window)</option>
-              <option value="Mid-Day Stocking">Mid-Day Stocking & Freight</option>
-              <option value="Closing Keyholder">Closing Keyholder (Night Lock)</option>
-              <option value="Flexible">Flexible Swing Shift</option>
-            </select>
           </div>
         </div>
 
@@ -716,10 +655,8 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Baseline Preferred Days</label>
-          <div class="grid grid-cols-7 gap-1.5" id="editEmpDaysContainer">
-            <!-- Rendered by JS -->
-          </div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Preferred Shift Windows by Day</label>
+          <div id="editEmpPrefMatrix"></div>
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
@@ -851,7 +788,7 @@
             <div>
               <span class="text-xs font-bold text-amber-900 block">Mark as Weight Exception</span>
               <span class="text-[11px] text-amber-700 leading-tight block">
-                This shift will be ignored by consistency penalty weights (anchor swap, off-day penalty, and hours variance).
+                This shift will be ignored by consistency penalty weights (window preference penalty and hour variance).
               </span>
             </div>
           </label>
@@ -945,7 +882,7 @@
 
       <div class="space-y-4">
         <p class="text-xs text-slate-600 leading-relaxed">
-          Export the entire scheduling model—including employee profiles, active staging blackouts, shift labels/times, saved schedules, store hours, preferred daily headcounts, and consistency weights—as a complete configuration file.
+          Export the entire scheduling model—including employee profiles with day-window preferences, holiday exceptions, shift definitions, saved schedules, and consistency weights—as a complete JSON file.
         </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -959,7 +896,7 @@
             </div>
             <button onclick="downloadMasterJson()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5">
               <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
-              Download schedule_config.json
+              Download Employee_Scheduler_backup.json
             </button>
           </div>
 
@@ -997,21 +934,82 @@
   </div>
 
   <script>
+    const SHIFT_WINDOWS = ['Morning', 'Mid', 'Night'];
+
+    const DAYS_CONFIG = [
+      { key: "Mon", label: "M", full: "Monday" },
+      { key: "Tue", label: "Tu", full: "Tuesday" },
+      { key: "Wed", label: "W", full: "Wednesday" },
+      { key: "Thu", label: "Th", full: "Thursday" },
+      { key: "Fri", label: "F", full: "Friday" },
+      { key: "Sat", label: "Sa", full: "Saturday" },
+      { key: "Sun", label: "Su", full: "Sunday" }
+    ];
+
+    // Helper to generate default weekday windows
+    function makeWeekdayWindows(windows) {
+      const obj = {};
+      DAYS_CONFIG.forEach(d => {
+        obj[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...windows];
+      });
+      return obj;
+    }
+
     const FACTORY_PRESETS = [
-      { id: "luke", name: "Luke", maxHours: 35, targetHours: 32, minHours: 25, keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Opener", preferredDays: ["Mon", "Tue", "Wed", "Thu", "Fri"], unavailability: [] },
-      { id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, anchor: "Closing Keyholder", preferredDays: ["Wed", "Thu", "Fri", "Sat", "Sun"], unavailability: [] },
-      { id: "ari", name: "Ari", maxHours: 28, targetHours: 24, minHours: 16, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Mid-Day Stocking", preferredDays: ["Mon", "Wed", "Fri", "Sat"], unavailability: [] },
-      { id: "luis", name: "Luis", maxHours: 30, targetHours: 25, minHours: 18, keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, anchor: "Mid-Day Stocking", preferredDays: ["Tue", "Wed", "Thu", "Fri"], unavailability: [] },
-      { id: "alan", name: "Alan", maxHours: 35, targetHours: 28, minHours: 20, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, anchor: "Mid-Day Stocking", preferredDays: ["Mon", "Tue", "Thu", "Sat"], unavailability: [] },
-      { id: "david", name: "David", maxHours: 25, targetHours: 20, minHours: 12, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Flexible", preferredDays: ["Fri", "Sat", "Sun"], unavailability: [] },
-      { id: "noah", name: "Noah", maxHours: 35, targetHours: 30, minHours: 20, keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, anchor: "Closing Keyholder", preferredDays: ["Mon", "Tue", "Fri", "Sat"], unavailability: [] },
-      { id: "lauren", name: "Lauren", maxHours: 20, targetHours: 16, minHours: 10, keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, anchor: "Opener", preferredDays: ["Tue", "Thu", "Sat"], unavailability: [] }
+      { 
+        id: "luke", name: "Luke", maxHours: 35, targetHours: 32, minHours: 25, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
+        preferredWindows: { Mon: ['Morning','Night'], Tue: ['Morning','Night'], Wed: ['Morning','Night'], Thu: ['Morning','Night'], Fri: ['Morning','Night'], Sat: ['Night'], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['Morning','Night'], Tue: ['Morning','Night'], Wed: ['Morning','Night'], Thu: ['Morning','Night'], Fri: ['Morning','Night'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "ari", name: "Ari", maxHours: 35, targetHours: 32, minHours: 20, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['Morning','Mid','Night'], Tue: ['Morning','Mid','Night'], Wed: ['Morning','Mid','Night'], Thu: ['Morning','Mid','Night'], Fri: ['Morning','Mid','Night'], Sat: ['Morning','Night'], Sun: ['Morning','Night'] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "luis", name: "Luis", maxHours: 25, targetHours: 23, minHours: 15, 
+        keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
+        preferredWindows: makeWeekdayWindows(['Mid']), 
+        unavailability: [] 
+      },
+      { 
+        id: "alan", name: "Alan", maxHours: 25, targetHours: 20, minHours: 10, 
+        keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['Mid'], Tue: [], Wed: ['Mid'], Thu: ['Mid'], Fri: ['Mid'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "david", name: "David", maxHours: 30, targetHours: 25, minHours: 10, 
+        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, 
+        preferredWindows: { Mon: [], Tue: ['Night'], Wed: ['Night'], Thu: ['Night'], Fri: ['Night'], Sat: ['Night'], Sun: ['Night'] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "noah", name: "Noah", maxHours: 25, targetHours: 20, minHours: 10, 
+        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
+        preferredWindows: { Mon: ['Morning'], Tue: ['Morning'], Wed: [], Thu: ['Morning'], Fri: ['Morning'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "lauren", name: "Lauren", maxHours: 22, targetHours: 18, minHours: 10, 
+        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
+        preferredWindows: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: ['Night'], Sat: ['Morning','Mid','Night'], Sun: ['Morning','Mid','Night'] }, 
+        unavailability: [] 
+      }
     ];
 
     const FACTORY_SHIFT_LABELS = [
-      { id: "SHIFT_OPEN", name: "Open", startTime: "08:30", endTime: "16:00", hours: 7.5, category: "Morning", color: "amber", isSystem: true },
-      { id: "SHIFT_MID", name: "Mid", startTime: "11:00", endTime: "19:00", hours: 7.5, category: "Mid", color: "sky", isSystem: true },
-      { id: "SHIFT_CLOSE", name: "Close", startTime: "13:30", endTime: "21:30", hours: 8.0, category: "Closing", color: "indigo", isSystem: true }
+      { id: "SHIFT_OPEN", name: "Open", startTime: "08:45", endTime: "16:00", hours: 7.25, category: "Morning", color: "emerald", isSystem: true },
+      { id: "SHIFT_MID", name: "Mid", startTime: "11:00", endTime: "17:00", hours: 6.0, category: "Mid", color: "sky", isSystem: true },
+      { id: "SHIFT_CLOSE", name: "Close", startTime: "14:30", endTime: "21:30", hours: 7.0, category: "Closing", color: "indigo", isSystem: true }
     ];
 
     const COLOR_CLASSES = {
@@ -1027,45 +1025,30 @@
     const DEFAULT_STORE_CONFIG = {
       shiftLabels: FACTORY_SHIFT_LABELS,
       operatingHours: [
-        { dayKey: "Mon", dayLabel: "Monday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
-        { dayKey: "Tue", dayLabel: "Tuesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
-        { dayKey: "Wed", dayLabel: "Wednesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
-        { dayKey: "Thu", dayLabel: "Thursday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 3, prefClose: 2 },
-        { dayKey: "Fri", dayLabel: "Friday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 4, prefClose: 3 },
-        { dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 2, prefMid: 4, prefClose: 3 },
-        { dayKey: "Sun", dayLabel: "Sunday", isClosed: false, open: "10:00", close: "18:00", prefMorning: 2, prefMid: 2, prefClose: 2 }
+        { dayKey: "Mon", dayLabel: "Monday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
+        { dayKey: "Tue", dayLabel: "Tuesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
+        { dayKey: "Wed", dayLabel: "Wednesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
+        { dayKey: "Thu", dayLabel: "Thursday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Fri", dayLabel: "Friday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Saturday", dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Sun", dayLabel: "Sunday", isClosed: false, open: "10:00", close: "20:00", prefMorning: 1, prefMid: 1, prefClose: 2 }
       ],
-      holidayExceptions: [
-        { date: "2026-11-26", reason: "Thanksgiving Day", isClosed: true, open: "09:00", close: "21:00" },
-        { date: "2026-12-24", reason: "Christmas Eve (Early Close)", isClosed: false, open: "09:00", close: "17:00" }
-      ],
+      holidayExceptions: [],
       operationalConstraints: {
         manHourCap: 205,
         minClosingKeyholders: 1
       },
       consistencyWeights: {
-        dayOfWeek: 100,
-        shiftAnchor: 80,
         preferredShift: 50,
         hourStability: 25,
         consecutiveDays: 15
       }
     };
 
-    const DAYS_CONFIG = [
-      { key: "Mon", label: "M", full: "Monday" },
-      { key: "Tue", label: "Tu", full: "Tuesday" },
-      { key: "Wed", label: "W", full: "Wednesday" },
-      { key: "Thu", label: "Th", full: "Thursday" },
-      { key: "Fri", label: "F", full: "Friday" },
-      { key: "Sat", label: "Sa", full: "Saturday" },
-      { key: "Sun", label: "Su", full: "Sunday" }
-    ];
-
-    const STORAGE_MASTER_KEY = "rotaops_master_roster_v43";
-    const STORAGE_ACTIVE_KEY = "rotaops_active_roster_v43";
-    const STORAGE_STORE_KEY = "rotaops_store_settings_v43";
-    const STORAGE_SCHEDULES_KEY = "rotaops_saved_schedules_v43";
+    const STORAGE_MASTER_KEY = "Employee_Scheduler_master_roster";
+    const STORAGE_ACTIVE_KEY = "Employee_Scheduler_staged_week";
+    const STORAGE_STORE_KEY = "Employee_Scheduler_store_config";
+    const STORAGE_SCHEDULES_KEY = "Employee_Scheduler_generated_schedules";
 
     let masterDirectory = [];
     let activeRoster = [];
@@ -1074,6 +1057,51 @@
     let currentSelectedWeekMonday = '2026-09-28';
     let currentView = 'master';
     let activeEditContext = null;
+    let newMasterPrefsState = makeWeekdayWindows(['Morning', 'Night']);
+
+    // --- REUSABLE PREFERENCE MATRIX MODULE ---
+    function renderPreferenceMatrix(containerId, currentPrefs = {}, changeCallbackName, readOnly = false) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = `
+        <div class="grid grid-cols-7 gap-1.5 text-center">
+          ${DAYS_CONFIG.map(d => {
+            const dayPrefs = currentPrefs[d.key] || [];
+            return `
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 flex flex-col items-center">
+                <span class="text-xs font-bold text-slate-800 mb-1">${d.label}</span>
+                <div class="flex flex-col gap-1 w-full">
+                  ${SHIFT_WINDOWS.map(w => {
+                    const checked = dayPrefs.includes(w);
+                    if (readOnly) {
+                      return `
+                        <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}">
+                          ${w[0]}
+                        </span>
+                      `;
+                    }
+                    return `
+                      <label class="flex items-center justify-center p-1 rounded text-[10px] font-bold cursor-pointer transition select-none ${
+                        checked ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
+                      }">
+                        <input type="checkbox" class="sr-only" ${checked ? 'checked' : ''} 
+                               onchange="${changeCallbackName}('${d.key}', '${w}', this.checked)">
+                        <span>${w[0]}</span>
+                      </label>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 px-1">
+          <span><strong>M</strong>: Morning &bull; <strong>M</strong>: Mid &bull; <strong>N</strong>: Night</span>
+          <span>Unselected column = Day OFF</span>
+        </div>
+      `;
+    }
 
     function initApp() {
       try {
@@ -1114,8 +1142,19 @@
         generateScheduleForWeek(currentSelectedWeekMonday, false);
       }
 
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
       refreshAll();
       switchView('master');
+    }
+
+    function handleNewMasterPrefToggle(dayKey, windowName, isChecked) {
+      if (!newMasterPrefsState[dayKey]) newMasterPrefsState[dayKey] = [];
+      if (isChecked) {
+        if (!newMasterPrefsState[dayKey].includes(windowName)) newMasterPrefsState[dayKey].push(windowName);
+      } else {
+        newMasterPrefsState[dayKey] = newMasterPrefsState[dayKey].filter(w => w !== windowName);
+      }
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
     }
 
     function saveMasterDirectory() {
@@ -1159,36 +1198,19 @@
 
     function switchView(view) {
       currentView = view;
-      const tabMasterBtn = document.getElementById('tabMasterBtn');
-      const tabActiveBtn = document.getElementById('tabActiveBtn');
-      const tabSettingsBtn = document.getElementById('tabSettingsBtn');
-      const tabGenerateBtn = document.getElementById('tabGenerateBtn');
-
-      const secMaster = document.getElementById('viewMasterDirectory');
-      const secActive = document.getElementById('viewActiveWeek');
-      const secSettings = document.getElementById('viewStoreSettings');
-      const secGenerate = document.getElementById('viewGenerateSchedule');
-
-      [tabMasterBtn, tabActiveBtn, tabSettingsBtn, tabGenerateBtn].forEach(btn => {
-        btn.className = "px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+      ['Master', 'Active', 'Settings', 'Generate'].forEach(v => {
+        const btn = document.getElementById(`tab${v}Btn`);
+        const sec = document.getElementById(`view${v === 'Generate' ? 'GenerateSchedule' : v === 'Master' ? 'MasterDirectory' : v === 'Active' ? 'ActiveWeek' : 'StoreSettings'}`);
+        if (btn) btn.className = "px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+        if (sec) sec.classList.add('hidden');
       });
-      [secMaster, secActive, secSettings, secGenerate].forEach(sec => sec.classList.add('hidden'));
 
-      if (view === 'master') {
-        tabMasterBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
-        secMaster.classList.remove('hidden');
-      } else if (view === 'active') {
-        tabActiveBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
-        secActive.classList.remove('hidden');
-      } else if (view === 'settings') {
-        tabSettingsBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
-        secSettings.classList.remove('hidden');
-      } else if (view === 'generate') {
-        tabGenerateBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
-        secGenerate.classList.remove('hidden');
-        renderScheduleGrid();
-      }
+      const activeBtn = document.getElementById(`tab${view.charAt(0).toUpperCase() + view.slice(1)}Btn`);
+      const activeSec = document.getElementById(`view${view === 'generate' ? 'GenerateSchedule' : view === 'master' ? 'MasterDirectory' : view === 'active' ? 'ActiveWeek' : 'StoreSettings'}`);
+      if (activeBtn) activeBtn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-xs flex items-center gap-1.5 font-bold";
+      if (activeSec) activeSec.classList.remove('hidden');
 
+      if (view === 'generate') renderScheduleGrid();
       lucide.createIcons();
     }
 
@@ -1209,6 +1231,7 @@
       return Number((diffMin / 60).toFixed(2));
     }
 
+    // --- MASTER DIRECTORY ---
     function renderMasterDirectory() {
       const container = document.getElementById('masterDirectoryGrid');
       if (!container) return;
@@ -1234,7 +1257,7 @@
                 </div>
                 <div>
                   <h4 class="text-sm font-bold text-slate-900">${escapeHtml(profile.name)}</h4>
-                  <span class="text-xs text-indigo-600 font-semibold">${profile.anchor || 'Flexible'} Anchor</span>
+                  <div class="flex gap-1 mt-0.5">${tags.join('')}</div>
                 </div>
               </div>
               
@@ -1248,11 +1271,7 @@
               </div>
             </div>
 
-            <div class="mt-3 space-y-2.5">
-              <div class="flex flex-wrap gap-1">
-                ${tags.join('')}
-              </div>
-
+            <div class="mt-3 space-y-3">
               <div class="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
                 <div>
                   <span class="text-[10px] text-slate-400 font-bold uppercase">Max</span>
@@ -1268,8 +1287,9 @@
                 </div>
               </div>
 
-              <div class="text-xs text-slate-500">
-                <span class="font-semibold text-slate-700">Preferred Days:</span> ${(profile.preferredDays || []).join(', ') || 'Any'}
+              <div>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">Shift Window Preferences</span>
+                <div id="prefMatrixMaster_${profile.id}"></div>
               </div>
             </div>
           </div>
@@ -1286,17 +1306,18 @@
           </div>
         `;
         container.appendChild(card);
+        renderPreferenceMatrix(`prefMatrixMaster_${profile.id}`, profile.preferredWindows || {}, '', true);
       });
       lucide.createIcons();
     }
 
+    let editEmpPrefsState = {};
     function openEditEmployeeModal(profileId) {
       const emp = masterDirectory.find(p => p.id === profileId);
       if (!emp) return;
 
       document.getElementById('editEmpId').value = emp.id;
       document.getElementById('editEmpName').value = emp.name;
-      document.getElementById('editEmpAnchor').value = emp.anchor || "Flexible";
       document.getElementById('editEmpMax').value = emp.maxHours ?? 35;
       document.getElementById('editEmpTarget').value = emp.targetHours ?? 30;
       document.getElementById('editEmpFloor').value = emp.minHours ?? 15;
@@ -1307,19 +1328,21 @@
       document.getElementById('editEmpDeli').checked = Boolean(emp.deliSpecialist);
       document.getElementById('editEmpTrainee').checked = Boolean(emp.trainee);
 
-      const daysContainer = document.getElementById('editEmpDaysContainer');
-      daysContainer.innerHTML = DAYS_CONFIG.map(d => {
-        const isChecked = (emp.preferredDays || []).includes(d.key);
-        return `
-          <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer select-none text-xs font-bold hover:bg-indigo-50 hover:border-indigo-300 transition">
-            <span>${d.label}</span>
-            <input type="checkbox" name="editPreferredDay" value="${d.key}" ${isChecked ? 'checked' : ''} class="mt-1 rounded text-indigo-600 focus:ring-indigo-500">
-          </label>
-        `;
-      }).join('');
+      editEmpPrefsState = JSON.parse(JSON.stringify(emp.preferredWindows || {}));
+      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, 'handleEditEmpPrefToggle');
 
       document.getElementById('editEmployeeModalBackdrop').classList.remove('hidden');
       lucide.createIcons();
+    }
+
+    function handleEditEmpPrefToggle(dayKey, windowName, isChecked) {
+      if (!editEmpPrefsState[dayKey]) editEmpPrefsState[dayKey] = [];
+      if (isChecked) {
+        if (!editEmpPrefsState[dayKey].includes(windowName)) editEmpPrefsState[dayKey].push(windowName);
+      } else {
+        editEmpPrefsState[dayKey] = editEmpPrefsState[dayKey].filter(w => w !== windowName);
+      }
+      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, 'handleEditEmpPrefToggle');
     }
 
     function closeEditEmployeeModal() {
@@ -1335,11 +1358,7 @@
       const newName = (document.getElementById('editEmpName').value || '').trim();
       if (!newName) return;
 
-      const dayCheckboxes = document.querySelectorAll('input[name="editPreferredDay"]:checked');
-      const selectedDays = Array.from(dayCheckboxes).map(cb => cb.value);
-
       emp.name = newName;
-      emp.anchor = document.getElementById('editEmpAnchor').value;
       emp.maxHours = Number(document.getElementById('editEmpMax').value) || 35;
       emp.targetHours = Number(document.getElementById('editEmpTarget').value) || 30;
       emp.minHours = Number(document.getElementById('editEmpFloor').value) || 15;
@@ -1349,13 +1368,12 @@
       emp.registerQualified = document.getElementById('editEmpRegister').checked;
       emp.deliSpecialist = document.getElementById('editEmpDeli').checked;
       emp.trainee = document.getElementById('editEmpTrainee').checked;
-      emp.preferredDays = selectedDays;
+      emp.preferredWindows = JSON.parse(JSON.stringify(editEmpPrefsState));
 
       // Sync active staged record if present
       const stagedIdx = activeRoster.findIndex(a => a.id === id || a.name.toLowerCase() === emp.name.toLowerCase());
       if (stagedIdx > -1) {
         activeRoster[stagedIdx].name = emp.name;
-        activeRoster[stagedIdx].anchor = emp.anchor;
         activeRoster[stagedIdx].maxHours = emp.maxHours;
         activeRoster[stagedIdx].targetHours = emp.targetHours;
         activeRoster[stagedIdx].minHours = emp.minHours;
@@ -1364,7 +1382,7 @@
         activeRoster[stagedIdx].registerQualified = emp.registerQualified;
         activeRoster[stagedIdx].deliSpecialist = emp.deliSpecialist;
         activeRoster[stagedIdx].trainee = emp.trainee;
-        activeRoster[stagedIdx].preferredDays = [...emp.preferredDays];
+        activeRoster[stagedIdx].preferredWindows = JSON.parse(JSON.stringify(emp.preferredWindows));
         saveActiveRoster();
       }
 
@@ -1387,7 +1405,6 @@
       const newPerson = {
         id,
         name,
-        anchor: document.getElementById('newMasterAnchor').value,
         maxHours: Number(document.getElementById('newMasterMax').value) || 35,
         targetHours: Number(document.getElementById('newMasterTarget').value) || 30,
         minHours: Number(document.getElementById('newMasterFloor').value) || 15,
@@ -1396,7 +1413,7 @@
         registerQualified: document.getElementById('newMasterRegister').checked,
         deliSpecialist: document.getElementById('newMasterDeli').checked,
         trainee: document.getElementById('newMasterTrainee').checked,
-        preferredDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        preferredWindows: JSON.parse(JSON.stringify(newMasterPrefsState)),
         unavailability: []
       };
 
@@ -1408,6 +1425,8 @@
       document.getElementById('newMasterKeyholder').checked = false;
       document.getElementById('newMasterDeli').checked = false;
       document.getElementById('newMasterTrainee').checked = false;
+      newMasterPrefsState = makeWeekdayWindows(['Morning', 'Night']);
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
     }
 
     function deleteMasterPreset(index) {
@@ -1427,7 +1446,7 @@
         const isStaged = activeRoster.some(a => a.id === p.id || a.name.toLowerCase() === p.name.toLowerCase());
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.name} (${p.anchor}${p.keyholder ? ' • Keyholder' : ''})${isStaged ? ' [Already Staged]' : ''}`;
+        opt.textContent = `${p.name} (${p.keyholder ? 'Keyholder • ' : ''}${p.targetHours}h)${isStaged ? ' [Already Staged]' : ''}`;
         select.appendChild(opt);
       });
     }
@@ -1478,6 +1497,7 @@
       showToast("Cleared active week roster.", "slate");
     }
 
+    // --- ACTIVE WEEK STAGING ---
     function renderActiveRoster() {
       const container = document.getElementById('activeRosterCards');
       if (!container) return;
@@ -1486,18 +1506,6 @@
       activeRoster.forEach((emp, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs transition hover:shadow-md";
-
-        const daysHtml = DAYS_CONFIG.map(d => {
-          const isChecked = (emp.preferredDays || []).includes(d.key);
-          return `
-            <label class="flex flex-col items-center justify-center p-2 rounded-xl border cursor-pointer select-none transition ${
-              isChecked ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 font-medium'
-            }">
-              <span class="text-xs">${d.label}</span>
-              <input type="checkbox" class="sr-only" ${isChecked ? 'checked' : ''} onchange="toggleActiveDay(${index}, '${d.key}')">
-            </label>
-          `;
-        }).join('');
 
         const chipsHtml = (emp.unavailability || []).length > 0
           ? emp.unavailability.map((b, bIdx) => `
@@ -1519,8 +1527,8 @@
               <div>
                 <div class="flex items-center gap-2">
                   <h3 class="text-base font-bold text-slate-900">${escapeHtml(emp.name)}</h3>
-                  <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">${emp.anchor}</span>
                   ${emp.keyholder ? '<span class="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Keyholder</span>' : ''}
+                  ${emp.soloEligible ? '<span class="text-[10px] font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Solo</span>' : ''}
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5">Target: <strong class="text-slate-800">${emp.targetHours || 30}h</strong> | Hard Cap: <strong class="text-slate-800">${emp.maxHours || 35}h</strong></p>
               </div>
@@ -1558,24 +1566,12 @@
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Roles & Capabilities</label>
-                <div class="flex flex-wrap gap-1.5 text-xs">
-                  <span class="px-2.5 py-1 rounded-xl ${emp.keyholder ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Keyholder</span>
-                  <span class="px-2.5 py-1 rounded-xl ${emp.soloEligible ? 'bg-indigo-100 text-indigo-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Solo Eligible</span>
-                  <span class="px-2.5 py-1 rounded-xl ${emp.registerQualified ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Register</span>
-                  <span class="px-2.5 py-1 rounded-xl ${emp.deliSpecialist ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-slate-100 text-slate-400 line-through'}">Deli/Stock</span>
-                </div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Shift Window Preferences</label>
+                <div id="prefMatrixActive_${index}"></div>
               </div>
             </div>
 
             <div class="lg:col-span-7 space-y-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Weekly Preferred Days</label>
-                <div class="grid grid-cols-7 gap-1.5">
-                  ${daysHtml}
-                </div>
-              </div>
-
               <div class="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
                   <span>Weekly Calendar Blackout / Time-off Requests</span>
@@ -1599,6 +1595,22 @@
           </div>
         `;
         container.appendChild(card);
+        renderPreferenceMatrix(`prefMatrixActive_${index}`, emp.preferredWindows || {}, `handleActivePrefToggle_${index}`);
+
+        // Define dynamic handler on window for this card index
+        window[`handleActivePrefToggle_${index}`] = function(dayKey, windowName, isChecked) {
+          if (!activeRoster[index].preferredWindows) activeRoster[index].preferredWindows = {};
+          if (!activeRoster[index].preferredWindows[dayKey]) activeRoster[index].preferredWindows[dayKey] = [];
+          if (isChecked) {
+            if (!activeRoster[index].preferredWindows[dayKey].includes(windowName)) {
+              activeRoster[index].preferredWindows[dayKey].push(windowName);
+            }
+          } else {
+            activeRoster[index].preferredWindows[dayKey] = activeRoster[index].preferredWindows[dayKey].filter(w => w !== windowName);
+          }
+          saveActiveRoster();
+          renderPreferenceMatrix(`prefMatrixActive_${index}`, activeRoster[index].preferredWindows, `handleActivePrefToggle_${index}`);
+        };
       });
       lucide.createIcons();
     }
@@ -1608,19 +1620,6 @@
         activeRoster[index][field] = value;
         saveActiveRoster();
       }
-    }
-
-    function toggleActiveDay(index, dayKey) {
-      if (!activeRoster[index]) return;
-      if (!activeRoster[index].preferredDays) activeRoster[index].preferredDays = [];
-      const pos = activeRoster[index].preferredDays.indexOf(dayKey);
-      if (pos > -1) {
-        activeRoster[index].preferredDays.splice(pos, 1);
-      } else {
-        activeRoster[index].preferredDays.push(dayKey);
-      }
-      saveActiveRoster();
-      renderActiveRoster();
     }
 
     function addBlackoutDate(index) {
@@ -1671,12 +1670,13 @@
         masterDirectory[mIdx].maxHours = Number(emp.maxHours);
         masterDirectory[mIdx].targetHours = Number(emp.targetHours);
         masterDirectory[mIdx].minHours = Number(emp.minHours);
-        masterDirectory[mIdx].preferredDays = [...(emp.preferredDays || [])];
+        masterDirectory[mIdx].preferredWindows = JSON.parse(JSON.stringify(emp.preferredWindows || {}));
         saveMasterDirectory();
         showToast(`Synced ${emp.name}'s settings to Master Directory!`, "emerald");
       }
     }
 
+    // --- SHIFT DEFINITIONS & STORE SETTINGS ---
     function renderShiftLabelsList() {
       const container = document.getElementById('shiftLabelsListGrid');
       if (!container) return;
@@ -1800,7 +1800,6 @@
       const hours = computeDurationHours(startTime, endTime);
 
       if (!name) return;
-
       if (!storeConfig.shiftLabels) storeConfig.shiftLabels = [];
 
       if (id) {
@@ -1907,9 +1906,7 @@
         const opt = document.createElement('option');
         opt.value = weekKey;
         opt.textContent = `Week of ${wDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endSun.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-        if (weekKey === currentSelectedWeekMonday) {
-          opt.selected = true;
-        }
+        if (weekKey === currentSelectedWeekMonday) opt.selected = true;
         select.appendChild(opt);
       }
     }
@@ -2001,11 +1998,11 @@
           </td>
           
           <td class="py-3 px-3 text-center bg-indigo-50/30">
-            <input type="number" min="0" max="10" value="${day.prefMorning ?? 2}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMorning', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
+            <input type="number" min="0" max="10" value="${day.prefMorning ?? 1}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMorning', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
           </td>
 
           <td class="py-3 px-3 text-center bg-indigo-50/30">
-            <input type="number" min="0" max="10" value="${day.prefMid ?? 3}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMid', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
+            <input type="number" min="0" max="10" value="${day.prefMid ?? 1}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMid', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
           </td>
 
           <td class="py-3 px-3 text-center bg-indigo-50/30">
@@ -2047,7 +2044,6 @@
         showToast("Please choose a holiday date.", "amber");
         return;
       }
-
       if (!storeConfig.holidayExceptions) storeConfig.holidayExceptions = [];
 
       const isClosed = statusEl.value === 'closed';
@@ -2127,8 +2123,6 @@
 
       if (storeConfig.consistencyWeights) {
         const w = storeConfig.consistencyWeights;
-        setSlider('weightVal_day', w.dayOfWeek ?? 100, 'pts / day changed');
-        setSlider('weightVal_anchor', w.shiftAnchor ?? 80, 'pts / shift swap');
         setSlider('weightVal_pref', w.preferredShift ?? 50, 'pts / violation');
         setSlider('weightVal_target', w.hourStability ?? 25, 'pts / hour variance');
         setSlider('weightVal_consec', w.consecutiveDays ?? 15, 'pts / excess day');
@@ -2138,6 +2132,14 @@
     function setSlider(elId, val, suffix) {
       const el = document.getElementById(elId);
       if (el) el.textContent = `${val} ${suffix}`;
+    }
+
+    // --- SOLVER ALGORITHM (ROTATIONAL ANTI-CLOPENING) ---
+    function getPreferenceScore(emp, dayKey, windowCategory) {
+      const dayPrefs = emp.preferredWindows?.[dayKey];
+      if (!dayPrefs || dayPrefs.length === 0) return 40; // Penalize scheduling on preferred OFF day
+      if (dayPrefs.includes(windowCategory)) return -30;  // Reward match
+      return 20; // Penalize working non-preferred window
     }
 
     function runScheduleSolver() {
@@ -2151,7 +2153,7 @@
     function generateScheduleForWeek(targetWeekMonday, showFeedback = true) {
       const weekDates = getWeekDates(targetWeekMonday);
       const employees = JSON.parse(JSON.stringify(activeRoster));
-      const weights = storeConfig.consistencyWeights || { dayOfWeek: 100, shiftAnchor: 80, preferredShift: 50, hourStability: 25, consecutiveDays: 15 };
+      const weights = storeConfig.consistencyWeights || { preferredShift: 50, hourStability: 25, consecutiveDays: 15 };
       const hoursCap = storeConfig.operationalConstraints?.manHourCap || 205;
       const minKeyOnClose = storeConfig.operationalConstraints?.minClosingKeyholders || 1;
 
@@ -2172,24 +2174,24 @@
       });
 
       const dailyTargets = weekDates.map((wDate, dayIdx) => {
-        const opDay = storeConfig.operatingHours[dayIdx] || { prefMorning: 2, prefMid: 3, prefClose: 2, isClosed: false };
+        const opDay = storeConfig.operatingHours[dayIdx] || { prefMorning: 1, prefMid: 1, prefClose: 2, isClosed: false };
         const hol = (storeConfig.holidayExceptions || []).find(h => h.date === wDate.dateStr);
         const isClosed = hol ? hol.isClosed : opDay.isClosed;
         return {
           dayIdx,
           dateStr: wDate.dateStr,
           isClosed,
-          openSlots: isClosed ? 0 : (opDay.prefMorning || 2),
-          midSlots: isClosed ? 0 : (opDay.prefMid || 3),
+          openSlots: isClosed ? 0 : (opDay.prefMorning || 1),
+          midSlots: isClosed ? 0 : (opDay.prefMid || 1),
           closeSlots: isClosed ? 0 : (opDay.prefClose || 2)
         };
       });
 
-      // Pass 1: Mandatory Closing Keyholders
+      // Pass 1: Mandatory Closing Keyholders (Rotational & Balanced across Luke/Dorothy/Ari)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
+        const dayKey = DAYS_CONFIG[target.dayIdx].key;
 
-        let neededKeyholders = minKeyOnClose;
         const keyholderCandidates = employees.filter(e => {
           if (!e.keyholder) return false;
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
@@ -2197,12 +2199,21 @@
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
           return true;
         }).sort((a, b) => {
-          const aAnchorBonus = a.anchor === "Closing Keyholder" ? -50 : 0;
-          const bAnchorBonus = b.anchor === "Closing Keyholder" ? -50 : 0;
-          return (aAnchorBonus + empHourTotals[a.id]) - (bAnchorBonus + empHourTotals[b.id]);
+          // Balance closing counts across keyholders
+          const aCloses = scheduleAssignments[a.id].filter(s => s.category === "Closing").length;
+          const bCloses = scheduleAssignments[b.id].filter(s => s.category === "Closing").length;
+          if (aCloses !== bCloses) return aCloses - bCloses;
+
+          // Window preference score for Night
+          const aScore = getPreferenceScore(a, dayKey, 'Night');
+          const bScore = getPreferenceScore(b, dayKey, 'Night');
+          if (aScore !== bScore) return aScore - bScore;
+
+          // Balance towards target hours
+          return (empHourTotals[a.id] - a.targetHours) - (empHourTotals[b.id] - b.targetHours);
         });
 
-        for (let i = 0; i < Math.min(neededKeyholders, keyholderCandidates.length); i++) {
+        for (let i = 0; i < Math.min(minKeyOnClose, keyholderCandidates.length); i++) {
           const emp = keyholderCandidates[i];
           if (scheduleAssignments[emp.id][target.dayIdx].id === "OFF") {
             scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
@@ -2212,20 +2223,27 @@
         }
       });
 
-      // Pass 2: Openers
+      // Pass 2: Openers (With Anti-Clopening Protection)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
+        const dayKey = DAYS_CONFIG[target.dayIdx].key;
 
         const openCandidates = employees.filter(e => {
           if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
+
+          // Anti-clopening: Cannot open if closed the preceding night
+          if (target.dayIdx > 0) {
+            const yesterdayShift = scheduleAssignments[e.id][target.dayIdx - 1];
+            if (yesterdayShift && yesterdayShift.category === "Closing") return false;
+          }
           return true;
         }).sort((a, b) => {
-          const aScore = (a.anchor === "Opener" ? -40 : 0) + (a.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -20 : 0);
-          const bScore = (b.anchor === "Opener" ? -40 : 0) + (b.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -20 : 0);
-          return aScore - bScore;
+          const aScore = getPreferenceScore(a, dayKey, 'Morning');
+          const bScore = getPreferenceScore(b, dayKey, 'Morning');
+          return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
         while (target.openSlots > 0 && openCandidates.length > 0) {
@@ -2239,6 +2257,7 @@
       // Pass 3: Remaining Closing Shifts
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
+        const dayKey = DAYS_CONFIG[target.dayIdx].key;
 
         const closeCandidates = employees.filter(e => {
           if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
@@ -2247,9 +2266,9 @@
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
           return true;
         }).sort((a, b) => {
-          const aPref = a.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -30 : 0;
-          const bPref = b.preferredDays?.includes(DAYS_CONFIG[target.dayIdx].key) ? -30 : 0;
-          return (empHourTotals[a.id] + aPref) - (empHourTotals[b.id] + bPref);
+          const aScore = getPreferenceScore(a, dayKey, 'Night');
+          const bScore = getPreferenceScore(b, dayKey, 'Night');
+          return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
         while (target.closeSlots > 0 && closeCandidates.length > 0) {
@@ -2260,9 +2279,10 @@
         }
       });
 
-      // Pass 4: Mid Shifts
+      // Pass 4: Mid Shifts (Prioritizing Stock Specialists on Truck days like Thursday)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
+        const dayKey = DAYS_CONFIG[target.dayIdx].key;
 
         const midCandidates = employees.filter(e => {
           if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
@@ -2271,9 +2291,11 @@
           if (empHourTotals[e.id] + midShift.hours > (e.maxHours || 35)) return false;
           return true;
         }).sort((a, b) => {
-          const aScore = (a.anchor === "Mid-Day Stocking" ? -35 : 0) + (a.deliSpecialist ? -15 : 0);
-          const bScore = (b.anchor === "Mid-Day Stocking" ? -35 : 0) + (b.deliSpecialist ? -15 : 0);
-          return (aScore + empHourTotals[a.id]) - (bScore + empHourTotals[b.id]);
+          const aDeliBonus = a.deliSpecialist ? -30 : 0;
+          const bDeliBonus = b.deliSpecialist ? -30 : 0;
+          const aScore = getPreferenceScore(a, dayKey, 'Mid') + aDeliBonus;
+          const bScore = getPreferenceScore(b, dayKey, 'Mid') + bDeliBonus;
+          return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
         while (target.midSlots > 0 && midCandidates.length > 0) {
@@ -2284,7 +2306,7 @@
         }
       });
 
-      // Scoring
+      // Scoring & Penalties
       let totalPenaltyScore = 0;
       employees.forEach(emp => {
         const diff = Math.abs(empHourTotals[emp.id] - (emp.targetHours || 30));
@@ -2294,16 +2316,18 @@
 
         let consecutiveDays = 0;
         scheduleAssignments[emp.id].forEach((shift, dIdx) => {
+          const dayKey = DAYS_CONFIG[dIdx].key;
           if (shift.id !== "OFF") {
             consecutiveDays++;
             if (!shift.isException) {
-              if (emp.preferredDays && !emp.preferredDays.includes(DAYS_CONFIG[dIdx].key)) {
-                totalPenaltyScore += (weights.preferredShift || 50);
-              }
-              if (emp.anchor === "Opener" && shift.category === "Closing") {
-                totalPenaltyScore += (weights.shiftAnchor || 80);
-              } else if (emp.anchor === "Closing Keyholder" && shift.category === "Morning") {
-                totalPenaltyScore += (weights.shiftAnchor || 80);
+              const dayPrefs = emp.preferredWindows?.[dayKey] || [];
+              if (dayPrefs.length === 0) {
+                totalPenaltyScore += (weights.preferredShift || 50); // Worked on requested day OFF
+              } else {
+                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Mid";
+                if (!dayPrefs.includes(shiftCategoryToWindow)) {
+                  totalPenaltyScore += (weights.preferredShift || 50); // Worked non-preferred window
+                }
               }
             }
           } else {
@@ -2335,6 +2359,7 @@
       }
     }
 
+    // --- SCHEDULE GRID RENDERING ---
     function renderScheduleGrid() {
       const schedule = savedSchedules[currentSelectedWeekMonday];
       const gridBody = document.getElementById('scheduleGridBody');
@@ -2401,7 +2426,7 @@
           diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
           diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
         } else {
-          diagText.textContent = `Operational headcount and closing keyholder requirements verified.`;
+          diagText.textContent = `Headcount and closing keyholder rotation policies verified.`;
           diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
         }
       }
@@ -2436,7 +2461,6 @@
                 <div class="font-bold text-slate-900 truncate">${escapeHtml(emp.name)}</div>
                 <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                   ${roleBadges}
-                  <span>${emp.anchor || 'Flex'}</span>
                 </div>
               </div>
             </div>
@@ -2540,12 +2564,10 @@
     function dailyTargetsCells(assignedArr, prefKey) {
       return assignedArr.map((actual, idx) => {
         const opDay = storeConfig.operatingHours[idx] || {};
-        const pref = opDay[prefKey] ?? 2;
+        const pref = opDay[prefKey] ?? 1;
         const isClosed = opDay.isClosed;
 
-        if (isClosed) {
-          return `<td class="py-2 px-2 text-center text-slate-400 font-normal">Closed</td>`;
-        }
+        if (isClosed) return `<td class="py-2 px-2 text-center text-slate-400 font-normal">Closed</td>`;
         const delta = actual - pref;
         let badge = "";
         if (delta === 0) {
@@ -2563,9 +2585,7 @@
       const minRequired = storeConfig.operationalConstraints?.minClosingKeyholders || 1;
       return closingKeysArr.map((count, idx) => {
         const opDay = storeConfig.operatingHours[idx] || {};
-        if (opDay.isClosed) {
-          return `<td class="py-2 px-2 text-center text-slate-400 font-normal">Closed</td>`;
-        }
+        if (opDay.isClosed) return `<td class="py-2 px-2 text-center text-slate-400 font-normal">Closed</td>`;
         const meetsPolicy = count >= minRequired;
         return `
           <td class="py-2 px-2 text-center text-[10px]">
@@ -2577,6 +2597,7 @@
       }).join('');
     }
 
+    // --- MANUAL SHIFT ADJUSTMENTS ---
     function openCellEditModal(empId, dayIdx) {
       const schedule = savedSchedules[currentSelectedWeekMonday];
       if (!schedule || !schedule.assignments[empId]) return;
@@ -2618,7 +2639,6 @@
       }
 
       document.getElementById('cellWeightExemptionCheckbox').checked = Boolean(shift.isException);
-
       document.getElementById('cellEditModalBackdrop').classList.remove('hidden');
       lucide.createIcons();
     }
@@ -2737,7 +2757,7 @@
       activeRoster.forEach(emp => {
         const opt = document.createElement('option');
         opt.value = emp.id;
-        opt.textContent = `${emp.name} (${emp.anchor})`;
+        opt.textContent = emp.name;
         empSelect.appendChild(opt);
       });
 
@@ -2784,7 +2804,7 @@
     }
 
     function recalculateScheduleTotals(schedule) {
-      const weights = storeConfig.consistencyWeights || { dayOfWeek: 100, shiftAnchor: 80, preferredShift: 50, hourStability: 25, consecutiveDays: 15 };
+      const weights = storeConfig.consistencyWeights || { preferredShift: 50, hourStability: 25, consecutiveDays: 15 };
       const hoursCap = storeConfig.operationalConstraints?.manHourCap || 205;
 
       schedule.empHourTotals = {};
@@ -2810,16 +2830,18 @@
 
         let consec = 0;
         (schedule.assignments[emp.id] || []).forEach((shift, dIdx) => {
+          const dayKey = DAYS_CONFIG[dIdx].key;
           if (shift.id !== "OFF") {
             consec++;
             if (!shift.isException) {
-              if (emp.preferredDays && !emp.preferredDays.includes(DAYS_CONFIG[dIdx].key)) {
+              const dayPrefs = emp.preferredWindows?.[dayKey] || [];
+              if (dayPrefs.length === 0) {
                 penalty += (weights.preferredShift || 50);
-              }
-              if (emp.anchor === "Opener" && shift.category === "Closing") {
-                penalty += (weights.shiftAnchor || 80);
-              } else if (emp.anchor === "Closing Keyholder" && shift.category === "Morning") {
-                penalty += (weights.shiftAnchor || 80);
+              } else {
+                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Mid";
+                if (!dayPrefs.includes(shiftCategoryToWindow)) {
+                  penalty += (weights.preferredShift || 50);
+                }
               }
             }
           } else {
@@ -2843,7 +2865,8 @@
 
     function openMasterModal() {
       const fullSystemExport = {
-        systemVersion: "4.3",
+        system: "Employee_Scheduler",
+        systemVersion: "5.0",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -2862,7 +2885,8 @@
 
     function downloadMasterJson() {
       const fullSystemExport = {
-        systemVersion: "4.3",
+        system: "Employee_Scheduler",
+        systemVersion: "5.0",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -2872,7 +2896,7 @@
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullSystemExport, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `schedule_config_${new Date().toISOString().slice(0, 10)}.json`);
+      downloadAnchor.setAttribute("download", `Employee_Scheduler_backup.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
