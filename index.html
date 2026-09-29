@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.3</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.4</span>
           </div>
-          <p class="text-xs text-slate-500">Auto-Derived Shift Categories & Preference-Linked Roster Engine</p>
+          <p class="text-xs text-slate-500">Auto-Derived Shift Categories & Mandatory Shift Constraints</p>
         </div>
       </div>
 
@@ -166,7 +166,7 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily preferences linked directly to shift templates.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, shift preferences, and mandatory required shifts.</p>
           </div>
         </div>
 
@@ -221,8 +221,8 @@
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Shift Label Preferences by Day</label>
-              <span class="text-[11px] text-slate-400">Pulls live shift definitions from Store Settings</span>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Shift Label Preferences & Mandatory Locks</label>
+              <span class="text-[11px] text-slate-400">Select shift preferences, then toggle 🔒 to make that shift mandatory</span>
             </div>
             <div id="newMasterPrefMatrix"></div>
           </div>
@@ -261,7 +261,7 @@
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Weekly Active Roster Staging
           </h2>
-          <p class="text-xs text-slate-500 mt-0.5">Stage crew members from the Master Directory, adjust weekly target hours, and record date blackouts.</p>
+          <p class="text-xs text-slate-500 mt-0.5">Stage crew members from the Master Directory, adjust target hours, and manage mandatory shift locks.</p>
         </div>
 
         <div class="flex items-center gap-2.5 flex-wrap">
@@ -308,7 +308,7 @@
               <i data-lucide="tags" class="w-4 h-4 text-indigo-600"></i>
               Shift Labels & Working Hours Templates
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Customize default shift times or create custom labels. Operational categories (Morning, Mid, Closing) are derived automatically from the shift times.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Customize shift times or add custom labels. Categories (Morning, Mid, Closing) are auto-derived from shift hours.</p>
           </div>
           <button onclick="openNewShiftModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -484,7 +484,7 @@
           </div>
           <div>
             <h2 class="text-sm font-bold text-slate-900">Weekly Schedule Generation & Interactive Adjustment</h2>
-            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver, or click any shift cell to edit assignments and mark weight exceptions.</p>
+            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver with mandatory lock support, or click any cell to edit.</p>
           </div>
         </div>
 
@@ -526,7 +526,7 @@
           <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
           <div>
             <span class="font-bold">Schedule Status:</span>
-            <span id="solverDiagnosticsText">Schedule generated satisfying keyholder hard rules and preferred headcounts.</span>
+            <span id="solverDiagnosticsText">Schedule generated satisfying keyholder hard rules and mandatory assignments.</span>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -578,8 +578,9 @@
             <span class="font-bold text-slate-700">Active Shift Templates:</span>
           </div>
           <div class="flex items-center gap-3">
-            <span class="inline-flex items-center gap-1 text-indigo-700 font-semibold"><span class="w-2 h-2 rounded-full bg-indigo-600"></span> Click any cell to Edit</span>
-            <span class="inline-flex items-center gap-1"><i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-600"></i> Certified Keyholder</span>
+            <span class="inline-flex items-center gap-1 text-indigo-700 font-semibold"><span class="w-2 h-2 rounded-full bg-indigo-600"></span> Click cell to Edit</span>
+            <span class="inline-flex items-center gap-1"><span class="px-1 py-0.2 rounded text-[9px] font-black bg-amber-500 text-white">LOCK</span> Mandatory Shift</span>
+            <span class="inline-flex items-center gap-1"><i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-600"></i> Keyholder</span>
           </div>
         </div>
       </div>
@@ -597,7 +598,7 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Edit Master Employee Profile</h3>
-            <p class="text-[11px] text-slate-500">Updates profile parameters and preferred daily shift assignments.</p>
+            <p class="text-[11px] text-slate-500">Updates profile parameters, shift preferences, and mandatory shift locks.</p>
           </div>
         </div>
         <button onclick="closeEditEmployeeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
@@ -658,7 +659,10 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Shift Label Preferences by Day</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700 uppercase">Shift Label Preferences & Mandatory Locks</label>
+            <span class="text-[10px] text-slate-400">Toggle 🔒 to lock shift</span>
+          </div>
           <div id="editEmpPrefMatrix"></div>
         </div>
 
@@ -880,7 +884,7 @@
 
       <div class="space-y-4">
         <p class="text-xs text-slate-600 leading-relaxed">
-          Export the entire scheduling model—including employee profiles with day-window preferences, holiday exceptions, shift definitions, saved schedules, and consistency weights—as a complete JSON file.
+          Export the entire scheduling model—including employee profiles with day-window preferences, mandatory locks, holiday exceptions, shift definitions, and consistency weights—as a single JSON file.
         </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -994,8 +998,8 @@
     let currentView = 'master';
     let activeEditContext = null;
     let newMasterPrefsState = {};
+    let newMasterMandatoryState = {};
 
-    // Helper: Derives operational category automatically from time boundaries
     function deriveShiftCategory(startTime, endTime) {
       if (!startTime || !endTime) return 'Support';
       const [sH, sM] = startTime.split(':').map(Number);
@@ -1003,70 +1007,74 @@
       const startDec = sH + sM / 60;
       const endDec = eH + eM / 60;
 
-      // Ends at or after 9:00 PM (21:00) or wraps past midnight
       if (endDec >= 21.0 || (endDec < startDec && endDec >= 0)) {
         return 'Closing';
       }
-      // Starts at or before 9:00 AM
       if (startDec <= 9.0) {
         return 'Morning';
       }
       return 'Mid';
     }
 
-    // Baseline profiles mapped to live shift IDs
     const FACTORY_PRESETS = [
       { 
         id: "luke", name: "Luke", maxHours: 35, targetHours: 32, minHours: 25, 
         keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_CLOSE'], Sat: ['SHIFT_CLOSE'], Sun: [] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, 
         keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_CLOSE'], Sat: [], Sun: [] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "ari", name: "Ari", maxHours: 35, targetHours: 32, minHours: 20, 
         keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Sat: ['SHIFT_OPEN','SHIFT_CLOSE'], Sun: ['SHIFT_OPEN','SHIFT_CLOSE'] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "luis", name: "Luis", maxHours: 25, targetHours: 23, minHours: 15, 
         keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_MID'], Tue: ['SHIFT_MID'], Wed: ['SHIFT_MID'], Thu: ['SHIFT_MID'], Fri: ['SHIFT_MID'], Sat: [], Sun: [] }, 
+        mandatoryShifts: { Thu: 'SHIFT_MID' }, // Mandatory mid-shift for deliveries
         unavailability: [] 
       },
       { 
         id: "alan", name: "Alan", maxHours: 25, targetHours: 20, minHours: 10, 
         keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_MID'], Tue: [], Wed: ['SHIFT_MID'], Thu: ['SHIFT_MID'], Fri: ['SHIFT_MID'], Sat: [], Sun: [] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "david", name: "David", maxHours: 30, targetHours: 25, minHours: 10, 
         keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, 
         preferredWindows: { Mon: [], Tue: ['SHIFT_CLOSE'], Wed: ['SHIFT_CLOSE'], Thu: ['SHIFT_CLOSE'], Fri: ['SHIFT_CLOSE'], Sat: ['SHIFT_CLOSE'], Sun: ['SHIFT_CLOSE'] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "noah", name: "Noah", maxHours: 25, targetHours: 20, minHours: 10, 
         keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_OPEN'], Tue: ['SHIFT_OPEN'], Wed: [], Thu: ['SHIFT_OPEN'], Fri: ['SHIFT_OPEN'], Sat: [], Sun: [] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "lauren", name: "Lauren", maxHours: 22, targetHours: 18, minHours: 10, 
         keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
         preferredWindows: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: ['SHIFT_CLOSE'], Sat: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Sun: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'] }, 
+        mandatoryShifts: {},
         unavailability: [] 
       }
     ];
 
-    // Helper: Normalize preference keys (supports both dynamic shift ID and legacy category string)
     function isShiftPreferred(dayPrefs = [], shift) {
       if (!dayPrefs || dayPrefs.length === 0) return false;
       if (dayPrefs.includes(shift.id)) return true;
@@ -1077,8 +1085,8 @@
       return false;
     }
 
-    // --- DYNAMIC REUSABLE SHIFT LABEL PREFERENCE MATRIX ---
-    function renderPreferenceMatrix(containerId, currentPrefs = {}, changeCallbackName, readOnly = false) {
+    // --- REUSABLE PREFERENCE & MANDATORY MATRIX MODULE ---
+    function renderPreferenceMatrix(containerId, currentPrefs = {}, mandatoryMap = {}, changeCallbackName, lockCallbackName, readOnly = false) {
       const container = document.getElementById(containerId);
       if (!container) return;
 
@@ -1088,24 +1096,34 @@
         <div class="grid grid-cols-7 gap-1.5 text-center">
           ${DAYS_CONFIG.map(d => {
             const dayPrefs = currentPrefs[d.key] || [];
+            const lockedShiftId = mandatoryMap[d.key] || null;
+            const hasPrefs = dayPrefs.length > 0;
+
             return `
-              <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 flex flex-col items-center">
-                <span class="text-xs font-bold text-slate-800 mb-1">${d.label}</span>
+              <div class="bg-slate-50 border ${lockedShiftId ? 'border-amber-400 bg-amber-50/40' : 'border-slate-200'} rounded-xl p-1.5 flex flex-col items-center justify-between">
+                <span class="text-xs font-bold ${lockedShiftId ? 'text-amber-900' : 'text-slate-800'} mb-1">${d.label}</span>
+                
                 <div class="flex flex-col gap-1 w-full">
                   ${configuredShifts.map(s => {
                     const checked = isShiftPreferred(dayPrefs, s);
+                    const isMandatory = lockedShiftId === s.id;
                     const letter = s.name.charAt(0).toUpperCase();
+
                     if (readOnly) {
                       return `
-                        <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}" title="${s.name} (${s.startTime}-${s.endTime} &bull; ${s.category})">
+                        <span class="text-[10px] font-bold py-0.5 rounded ${
+                          isMandatory ? 'bg-amber-500 text-white ring-1 ring-amber-600' :
+                          checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'
+                        }" title="${s.name} (${s.startTime}-${s.endTime})${isMandatory ? ' [MANDATORY]' : ''}">
                           ${letter}
                         </span>
                       `;
                     }
                     return `
                       <label class="flex items-center justify-center p-1 rounded text-[10px] font-bold cursor-pointer transition select-none ${
+                        isMandatory ? 'bg-amber-500 text-white shadow-xs ring-2 ring-amber-400' :
                         checked ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
-                      }" title="${s.name} (${s.startTime}-${s.endTime} &bull; ${s.category})">
+                      }" title="${s.name} (${s.startTime}-${s.endTime})">
                         <input type="checkbox" class="sr-only" ${checked ? 'checked' : ''} 
                                onchange="${changeCallbackName}('${d.key}', '${s.id}', this.checked)">
                         <span>${letter}</span>
@@ -1113,15 +1131,31 @@
                     `;
                   }).join('')}
                 </div>
+
+                <!-- Mandatory Checkbox Toggle -->
+                <div class="mt-1.5 pt-1.5 border-t border-slate-200/70 w-full flex items-center justify-center">
+                  ${readOnly ? (
+                    lockedShiftId ? `<span class="text-[9px] font-black text-amber-700 bg-amber-100 px-1 py-0.2 rounded" title="Mandatory shift locked">LOCK</span>` : `<span class="text-[9px] text-slate-300">-</span>`
+                  ) : (
+                    hasPrefs ? `
+                      <label class="inline-flex items-center gap-0.5 cursor-pointer text-[10px] font-bold ${lockedShiftId ? 'text-amber-800' : 'text-slate-400 hover:text-slate-600'}" title="Toggle mandatory requirement for this day">
+                        <input type="checkbox" class="rounded text-amber-600 focus:ring-amber-500 w-3 h-3" 
+                               ${lockedShiftId ? 'checked' : ''} 
+                               onchange="${lockCallbackName}('${d.key}', this.checked)">
+                        <span class="text-[9px]">${lockedShiftId ? '🔒' : '🔓'}</span>
+                      </label>
+                    ` : `<span class="text-[9px] text-slate-300" title="Select a shift above to enable mandatory lock">-</span>`
+                  )}
+                </div>
               </div>
             `;
           }).join('')}
         </div>
         <div class="flex flex-wrap justify-between items-center text-[10px] text-slate-400 mt-1.5 px-1 gap-2">
           <div class="flex items-center gap-2 flex-wrap">
-            ${configuredShifts.map(s => `<span><strong>${s.name.charAt(0).toUpperCase()}</strong>: ${s.name} <em class="opacity-75">(${s.category})</em></span>`).join('&bull; ')}
+            ${configuredShifts.map(s => `<span><strong>${s.name.charAt(0).toUpperCase()}</strong>: ${s.name}</span>`).join('&bull; ')}
           </div>
-          <span>Unselected column = Day OFF</span>
+          <span class="text-amber-700 font-semibold">🔒 = Mandatory Lock</span>
         </div>
       `;
     }
@@ -1133,7 +1167,6 @@
         if (!storeConfig.shiftLabels || storeConfig.shiftLabels.length === 0) {
           storeConfig.shiftLabels = JSON.parse(JSON.stringify(FACTORY_SHIFT_LABELS));
         } else {
-          // Normalize and verify categories against current times
           storeConfig.shiftLabels.forEach(s => {
             s.category = deriveShiftCategory(s.startTime, s.endTime);
           });
@@ -1145,6 +1178,7 @@
       try {
         const stored = localStorage.getItem(STORAGE_MASTER_KEY);
         masterDirectory = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(FACTORY_PRESETS));
+        masterDirectory.forEach(m => { if (!m.mandatoryShifts) m.mandatoryShifts = {}; });
       } catch (e) {
         masterDirectory = JSON.parse(JSON.stringify(FACTORY_PRESETS));
       }
@@ -1152,6 +1186,7 @@
       try {
         const storedActive = localStorage.getItem(STORAGE_ACTIVE_KEY);
         activeRoster = storedActive ? JSON.parse(storedActive) : JSON.parse(JSON.stringify(masterDirectory));
+        activeRoster.forEach(a => { if (!a.mandatoryShifts) a.mandatoryShifts = {}; });
       } catch (e) {
         activeRoster = JSON.parse(JSON.stringify(masterDirectory));
       }
@@ -1170,12 +1205,13 @@
       DAYS_CONFIG.forEach(d => {
         newMasterPrefsState[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...defaultShifts];
       });
+      newMasterMandatoryState = {};
 
       if (!savedSchedules[currentSelectedWeekMonday]) {
         generateScheduleForWeek(currentSelectedWeekMonday, false);
       }
 
-      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, newMasterMandatoryState, 'handleNewMasterPrefToggle', 'handleNewMasterLockToggle');
       refreshAll();
       switchView('master');
     }
@@ -1186,8 +1222,19 @@
         if (!newMasterPrefsState[dayKey].includes(shiftId)) newMasterPrefsState[dayKey].push(shiftId);
       } else {
         newMasterPrefsState[dayKey] = newMasterPrefsState[dayKey].filter(id => id !== shiftId);
+        if (newMasterMandatoryState[dayKey] === shiftId) delete newMasterMandatoryState[dayKey];
       }
-      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, newMasterMandatoryState, 'handleNewMasterPrefToggle', 'handleNewMasterLockToggle');
+    }
+
+    function handleNewMasterLockToggle(dayKey, isChecked) {
+      if (isChecked) {
+        const firstPref = (newMasterPrefsState[dayKey] || [])[0];
+        if (firstPref) newMasterMandatoryState[dayKey] = firstPref;
+      } else {
+        delete newMasterMandatoryState[dayKey];
+      }
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, newMasterMandatoryState, 'handleNewMasterPrefToggle', 'handleNewMasterLockToggle');
     }
 
     function saveMasterDirectory() {
@@ -1209,7 +1256,7 @@
       renderHolidayExceptions();
       renderShiftLabelsList();
       renderDynamicShiftLegend();
-      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, newMasterMandatoryState, 'handleNewMasterPrefToggle', 'handleNewMasterLockToggle');
       renderMasterDirectory();
       renderActiveRoster();
       updateMetrics();
@@ -1324,7 +1371,7 @@
               </div>
 
               <div>
-                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">Shift Label Preferences</span>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">Shift Label Preferences & Locks</span>
                 <div id="prefMatrixMaster_${profile.id}"></div>
               </div>
             </div>
@@ -1342,12 +1389,13 @@
           </div>
         `;
         container.appendChild(card);
-        renderPreferenceMatrix(`prefMatrixMaster_${profile.id}`, profile.preferredWindows || {}, '', true);
+        renderPreferenceMatrix(`prefMatrixMaster_${profile.id}`, profile.preferredWindows || {}, profile.mandatoryShifts || {}, '', '', true);
       });
       lucide.createIcons();
     }
 
     let editEmpPrefsState = {};
+    let editEmpMandatoryState = {};
     function openEditEmployeeModal(profileId) {
       const emp = masterDirectory.find(p => p.id === profileId);
       if (!emp) return;
@@ -1365,7 +1413,8 @@
       document.getElementById('editEmpTrainee').checked = Boolean(emp.trainee);
 
       editEmpPrefsState = JSON.parse(JSON.stringify(emp.preferredWindows || {}));
-      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, 'handleEditEmpPrefToggle');
+      editEmpMandatoryState = JSON.parse(JSON.stringify(emp.mandatoryShifts || {}));
+      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, editEmpMandatoryState, 'handleEditEmpPrefToggle', 'handleEditEmpLockToggle');
 
       document.getElementById('editEmployeeModalBackdrop').classList.remove('hidden');
       lucide.createIcons();
@@ -1377,8 +1426,19 @@
         if (!editEmpPrefsState[dayKey].includes(shiftId)) editEmpPrefsState[dayKey].push(shiftId);
       } else {
         editEmpPrefsState[dayKey] = editEmpPrefsState[dayKey].filter(id => id !== shiftId);
+        if (editEmpMandatoryState[dayKey] === shiftId) delete editEmpMandatoryState[dayKey];
       }
-      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, 'handleEditEmpPrefToggle');
+      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, editEmpMandatoryState, 'handleEditEmpPrefToggle', 'handleEditEmpLockToggle');
+    }
+
+    function handleEditEmpLockToggle(dayKey, isChecked) {
+      if (isChecked) {
+        const firstPref = (editEmpPrefsState[dayKey] || [])[0];
+        if (firstPref) editEmpMandatoryState[dayKey] = firstPref;
+      } else {
+        delete editEmpMandatoryState[dayKey];
+      }
+      renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, editEmpMandatoryState, 'handleEditEmpPrefToggle', 'handleEditEmpLockToggle');
     }
 
     function closeEditEmployeeModal() {
@@ -1405,6 +1465,7 @@
       emp.deliSpecialist = document.getElementById('editEmpDeli').checked;
       emp.trainee = document.getElementById('editEmpTrainee').checked;
       emp.preferredWindows = JSON.parse(JSON.stringify(editEmpPrefsState));
+      emp.mandatoryShifts = JSON.parse(JSON.stringify(editEmpMandatoryState));
 
       const stagedIdx = activeRoster.findIndex(a => a.id === id || a.name.toLowerCase() === emp.name.toLowerCase());
       if (stagedIdx > -1) {
@@ -1418,6 +1479,7 @@
         activeRoster[stagedIdx].deliSpecialist = emp.deliSpecialist;
         activeRoster[stagedIdx].trainee = emp.trainee;
         activeRoster[stagedIdx].preferredWindows = JSON.parse(JSON.stringify(emp.preferredWindows));
+        activeRoster[stagedIdx].mandatoryShifts = JSON.parse(JSON.stringify(emp.mandatoryShifts));
         saveActiveRoster();
       }
 
@@ -1449,6 +1511,7 @@
         deliSpecialist: document.getElementById('newMasterDeli').checked,
         trainee: document.getElementById('newMasterTrainee').checked,
         preferredWindows: JSON.parse(JSON.stringify(newMasterPrefsState)),
+        mandatoryShifts: JSON.parse(JSON.stringify(newMasterMandatoryState)),
         unavailability: []
       };
 
@@ -1465,7 +1528,8 @@
       DAYS_CONFIG.forEach(d => {
         newMasterPrefsState[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...defaultShifts];
       });
-      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
+      newMasterMandatoryState = {};
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, newMasterMandatoryState, 'handleNewMasterPrefToggle', 'handleNewMasterLockToggle');
     }
 
     function deleteMasterPreset(index) {
@@ -1512,6 +1576,7 @@
 
       const staged = JSON.parse(JSON.stringify(match));
       staged.unavailability = staged.unavailability || [];
+      if (!staged.mandatoryShifts) staged.mandatoryShifts = {};
       activeRoster.push(staged);
       saveActiveRoster();
       showToast(`Staged ${match.name} to the active week.`, "emerald");
@@ -1521,7 +1586,9 @@
       let added = 0;
       masterDirectory.forEach(p => {
         if (!activeRoster.some(a => a.id === p.id || a.name.toLowerCase() === p.name.toLowerCase())) {
-          activeRoster.push(JSON.parse(JSON.stringify(p)));
+          const staged = JSON.parse(JSON.stringify(p));
+          if (!staged.mandatoryShifts) staged.mandatoryShifts = {};
+          activeRoster.push(staged);
           added++;
         }
       });
@@ -1574,7 +1641,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-              <button onclick="syncCardToMaster(${index})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-semibold text-xs rounded-xl shadow-2xs transition" title="Save any adjusted target hours back to Master profile">
+              <button onclick="syncCardToMaster(${index})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-semibold text-xs rounded-xl shadow-2xs transition" title="Save any adjusted target hours and locks back to Master profile">
                 <i data-lucide="bookmark-check" class="w-3.5 h-3.5 text-emerald-600"></i>
                 Sync to Master
               </button>
@@ -1605,7 +1672,10 @@
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Shift Label Preferences</label>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-bold text-slate-700 uppercase">Shift Label Preferences & Locks</label>
+                  <span class="text-[10px] text-slate-400">Toggle 🔒 to lock shift</span>
+                </div>
                 <div id="prefMatrixActive_${index}"></div>
               </div>
             </div>
@@ -1634,7 +1704,7 @@
           </div>
         `;
         container.appendChild(card);
-        renderPreferenceMatrix(`prefMatrixActive_${index}`, emp.preferredWindows || {}, `handleActivePrefToggle_${index}`);
+        renderPreferenceMatrix(`prefMatrixActive_${index}`, emp.preferredWindows || {}, emp.mandatoryShifts || {}, `handleActivePrefToggle_${index}`, `handleActiveLockToggle_${index}`);
 
         window[`handleActivePrefToggle_${index}`] = function(dayKey, shiftId, isChecked) {
           if (!activeRoster[index].preferredWindows) activeRoster[index].preferredWindows = {};
@@ -1645,9 +1715,24 @@
             }
           } else {
             activeRoster[index].preferredWindows[dayKey] = activeRoster[index].preferredWindows[dayKey].filter(id => id !== shiftId);
+            if (activeRoster[index].mandatoryShifts && activeRoster[index].mandatoryShifts[dayKey] === shiftId) {
+              delete activeRoster[index].mandatoryShifts[dayKey];
+            }
           }
           saveActiveRoster();
-          renderPreferenceMatrix(`prefMatrixActive_${index}`, activeRoster[index].preferredWindows, `handleActivePrefToggle_${index}`);
+          renderPreferenceMatrix(`prefMatrixActive_${index}`, activeRoster[index].preferredWindows, activeRoster[index].mandatoryShifts || {}, `handleActivePrefToggle_${index}`, `handleActiveLockToggle_${index}`);
+        };
+
+        window[`handleActiveLockToggle_${index}`] = function(dayKey, isChecked) {
+          if (!activeRoster[index].mandatoryShifts) activeRoster[index].mandatoryShifts = {};
+          if (isChecked) {
+            const firstPref = (activeRoster[index].preferredWindows?.[dayKey] || [])[0];
+            if (firstPref) activeRoster[index].mandatoryShifts[dayKey] = firstPref;
+          } else {
+            delete activeRoster[index].mandatoryShifts[dayKey];
+          }
+          saveActiveRoster();
+          renderPreferenceMatrix(`prefMatrixActive_${index}`, activeRoster[index].preferredWindows, activeRoster[index].mandatoryShifts || {}, `handleActivePrefToggle_${index}`, `handleActiveLockToggle_${index}`);
         };
       });
       lucide.createIcons();
@@ -1709,8 +1794,9 @@
         masterDirectory[mIdx].targetHours = Number(emp.targetHours);
         masterDirectory[mIdx].minHours = Number(emp.minHours);
         masterDirectory[mIdx].preferredWindows = JSON.parse(JSON.stringify(emp.preferredWindows || {}));
+        masterDirectory[mIdx].mandatoryShifts = JSON.parse(JSON.stringify(emp.mandatoryShifts || {}));
         saveMasterDirectory();
-        showToast(`Synced ${emp.name}'s settings to Master Directory!`, "emerald");
+        showToast(`Synced ${emp.name}'s settings and locks to Master Directory!`, "emerald");
       }
     }
 
@@ -2174,12 +2260,12 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- SOLVER ALGORITHM (CORRELATED SHIFT PREFERENCES) ---
+    // --- SOLVER ALGORITHM (PASS 0 MANDATORY LOCKS + ROTATIONAL HEURISTICS) ---
     function evaluateShiftPreferenceCost(emp, dayKey, targetShift) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
-      if (!dayPrefs || dayPrefs.length === 0) return 40; // Penalize working on requested day OFF
-      if (isShiftPreferred(dayPrefs, targetShift)) return -30; // Direct reward
-      return 20; // Penalize unselected shift assignment
+      if (!dayPrefs || dayPrefs.length === 0) return 40;
+      if (isShiftPreferred(dayPrefs, targetShift)) return -30;
+      return 20;
     }
 
     function runScheduleSolver() {
@@ -2227,13 +2313,53 @@
         };
       });
 
+      // PASS 0: Mandatory Shift Allocations (Hard Locks)
+      employees.forEach(emp => {
+        const mandatory = emp.mandatoryShifts || {};
+        DAYS_CONFIG.forEach((d, dayIdx) => {
+          const shiftId = mandatory[d.key];
+          if (!shiftId) return;
+
+          const target = dailyTargets[dayIdx];
+          if (target.isClosed) return;
+
+          const isBlackedOut = (emp.unavailability || []).some(u => u.date === target.dateStr);
+          if (isBlackedOut) return;
+
+          const shiftDef = getShiftDefinition(shiftId);
+          if (shiftDef.id !== 'OFF') {
+            scheduleAssignments[emp.id][dayIdx] = { 
+              ...shiftDef, 
+              isException: false, 
+              isManual: true, 
+              isMandatoryLock: true 
+            };
+            empHourTotals[emp.id] += shiftDef.hours;
+
+            // Deduct required daily headcount
+            if (shiftDef.category === 'Morning') target.openSlots = Math.max(0, target.openSlots - 1);
+            else if (shiftDef.category === 'Closing') target.closeSlots = Math.max(0, target.closeSlots - 1);
+            else target.midSlots = Math.max(0, target.midSlots - 1);
+          }
+        });
+      });
+
       // Pass 1: Mandatory Closing Keyholders (Rotational & Preference-Scored)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
         const dayKey = DAYS_CONFIG[target.dayIdx].key;
 
+        // Check if a keyholder is already closing today via Pass 0
+        const alreadyClosingKeyholders = employees.filter(e => 
+          e.keyholder && scheduleAssignments[e.id][target.dayIdx].category === 'Closing'
+        ).length;
+
+        let neededKeyholders = Math.max(0, minKeyOnClose - alreadyClosingKeyholders);
+        if (neededKeyholders === 0) return;
+
         const keyholderCandidates = employees.filter(e => {
           if (!e.keyholder) return false;
+          if (scheduleAssignments[e.id][target.dayIdx].id !== 'OFF') return false;
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
@@ -2250,13 +2376,11 @@
           return (empHourTotals[a.id] - a.targetHours) - (empHourTotals[b.id] - b.targetHours);
         });
 
-        for (let i = 0; i < Math.min(minKeyOnClose, keyholderCandidates.length); i++) {
+        for (let i = 0; i < Math.min(neededKeyholders, keyholderCandidates.length); i++) {
           const emp = keyholderCandidates[i];
-          if (scheduleAssignments[emp.id][target.dayIdx].id === "OFF") {
-            scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
-            empHourTotals[emp.id] += closeShift.hours;
-            target.closeSlots = Math.max(0, target.closeSlots - 1);
-          }
+          scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
+          empHourTotals[emp.id] += closeShift.hours;
+          target.closeSlots = Math.max(0, target.closeSlots - 1);
         }
       });
 
@@ -2271,7 +2395,6 @@
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
 
-          // Anti-clopening protection
           if (target.dayIdx > 0) {
             const yesterdayShift = scheduleAssignments[e.id][target.dayIdx - 1];
             if (yesterdayShift && yesterdayShift.category === "Closing") return false;
@@ -2316,7 +2439,7 @@
         }
       });
 
-      // Pass 4: Mid / Custom Shifts (Respects Delivery / Deli Qualifications)
+      // Pass 4: Mid Shifts (Swing)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
         const dayKey = DAYS_CONFIG[target.dayIdx].key;
@@ -2356,12 +2479,12 @@
           const dayKey = DAYS_CONFIG[dIdx].key;
           if (shift.id !== "OFF") {
             consecutiveDays++;
-            if (!shift.isException) {
+            if (!shift.isException && !shift.isMandatoryLock) {
               const dayPrefs = emp.preferredWindows?.[dayKey] || [];
               if (dayPrefs.length === 0) {
-                totalPenaltyScore += (weights.preferredShift || 50); // Worked on requested day OFF
+                totalPenaltyScore += (weights.preferredShift || 50);
               } else if (!isShiftPreferred(dayPrefs, shift)) {
-                totalPenaltyScore += (weights.preferredShift || 50); // Worked unselected shift label
+                totalPenaltyScore += (weights.preferredShift || 50);
               }
             }
           } else {
@@ -2460,7 +2583,7 @@
           diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
           diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
         } else {
-          diagText.textContent = `Headcount and closing keyholder rotation policies verified.`;
+          diagText.textContent = `Headcount, mandatory shift locks, and closing keyholder rotation verified.`;
           diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
         }
       }
@@ -2535,8 +2658,9 @@
                   ${shift.category === 'Closing' && emp.keyholder ? '<i data-lucide="key-round" class="w-3 h-3 text-amber-700"></i>' : ''}
                 </div>
                 <div class="text-[9px] font-normal opacity-90">${shift.time}</div>
+                ${shift.isMandatoryLock ? '<span class="inline-block mt-0.5 px-1 rounded text-[8px] font-black bg-amber-500 text-white tracking-wider">LOCK</span>' : ''}
                 ${shift.isException ? '<span class="inline-block mt-0.5 px-1 rounded text-[8px] font-black bg-indigo-700 text-white tracking-wider">EXEMPT</span>' : ''}
-                ${shift.isManual && !shift.isException ? '<span class="inline-block mt-0.5 px-1 rounded text-[8px] font-bold bg-slate-700 text-white">EDIT</span>' : ''}
+                ${shift.isManual && !shift.isException && !shift.isMandatoryLock ? '<span class="inline-block mt-0.5 px-1 rounded text-[8px] font-bold bg-slate-700 text-white">EDIT</span>' : ''}
               </div>
             `;
           }
@@ -2713,7 +2837,8 @@
       schedule.assignments[empId][dayIdx] = {
         ...getShiftDefinition("OFF"),
         isException: false,
-        isManual: true
+        isManual: true,
+        isMandatoryLock: false
       };
 
       recalculateScheduleTotals(schedule);
@@ -2739,7 +2864,8 @@
         schedule.assignments[empId][dayIdx] = {
           ...getShiftDefinition("OFF"),
           isException: false,
-          isManual: true
+          isManual: true,
+          isMandatoryLock: false
         };
       } else {
         let baseDef = (storeConfig.shiftLabels || []).find(s => s.id === templateVal);
@@ -2757,7 +2883,8 @@
           category,
           badgeClass: COLOR_CLASSES[color] || COLOR_CLASSES.indigo,
           isException: isExempt,
-          isManual: true
+          isManual: true,
+          isMandatoryLock: false
         };
       }
 
@@ -2827,7 +2954,8 @@
       schedule.assignments[empId][dayIdx] = {
         ...shiftDef,
         isException: isExempt,
-        isManual: true
+        isManual: true,
+        isMandatoryLock: false
       };
 
       recalculateScheduleTotals(schedule);
@@ -2867,7 +2995,7 @@
           const dayKey = DAYS_CONFIG[dIdx].key;
           if (shift.id !== "OFF") {
             consec++;
-            if (!shift.isException) {
+            if (!shift.isException && !shift.isMandatoryLock) {
               const dayPrefs = emp.preferredWindows?.[dayKey] || [];
               if (dayPrefs.length === 0) {
                 penalty += (weights.preferredShift || 50);
@@ -2897,7 +3025,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.3",
+        systemVersion: "5.4",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -2917,7 +3045,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.3",
+        systemVersion: "5.4",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
