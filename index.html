@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v6.0</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v6.1</span>
           </div>
-          <p class="text-xs text-slate-500">Timeline Verification, Non-Destructive Audit & Cross-Week Clopening Protection</p>
+          <p class="text-xs text-slate-500">Master Roster Architect & Clean Overwrite Solver Engine</p>
         </div>
       </div>
 
@@ -2305,7 +2305,7 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- CONTINUOUS TIMELINE AUDIT HELPER (TIME-SLICED COMPLIANCE) ---
+    // --- CONTINUOUS TIMELINE AUDIT HELPER (TIME-SLICED COMPLIANCE HIGHLIGHTS) ---
     function evaluateScheduleCompliance(schedule, mondayDateStr) {
       const findings = [];
       const weekDates = getWeekDates(mondayDateStr);
@@ -2324,7 +2324,6 @@
         const openMin = oH * 60 + oM;
         const closeMin = cH * 60 + cM;
 
-        // Collect all assigned shifts for this day with minute intervals
         const dayShifts = [];
         employees.forEach(emp => {
           const shift = schedule.assignments[emp.id]?.[dayIdx];
@@ -2340,12 +2339,10 @@
           }
         });
 
-        // Sample in 30-minute intervals across the store's operating hours
         for (let time = openMin; time < closeMin; time += 30) {
           const sampleTimeStr = `${String(Math.floor(time / 60)).padStart(2, '0')}:${String(time % 60).padStart(2, '0')}`;
           const onDuty = dayShifts.filter(s => s.start <= time && s.end > time);
 
-          // Rule 1: Zero Staff Gap
           if (onDuty.length === 0) {
             findings.push({
               type: 'danger',
@@ -2356,7 +2353,6 @@
             continue;
           }
 
-          // Rule 2: Solo Eligibility Violation (alone in store without soloEligible)
           if (onDuty.length === 1 && !onDuty[0].emp.soloEligible) {
             findings.push({
               type: 'warning',
@@ -2366,7 +2362,6 @@
             });
           }
 
-          // Rule 3: Register Qualified Coverage Violation
           const hasRegister = onDuty.some(s => s.emp.registerQualified);
           if (!hasRegister) {
             const names = onDuty.map(s => s.emp.name).join(', ');
@@ -2379,7 +2374,6 @@
           }
         }
 
-        // Rule 4: Mandatory Closing Keyholder Check
         const closingDuty = dayShifts.filter(s => s.end >= closeMin);
         const hasKeyholderClose = closingDuty.some(s => s.emp.keyholder);
         if (!hasKeyholderClose) {
@@ -2430,7 +2424,6 @@
         title.className = "text-sm font-bold text-rose-900";
         subtitle.textContent = "Highlighted below for manual adjustment. Existing assignments were not modified.";
 
-        // Deduplicate adjacent 30-min time interval alerts for readability
         const uniqueMessages = Array.from(new Set(findings.map(f => f.message)));
         list.innerHTML = uniqueMessages.map(msg => `
           <div class="p-3 bg-white/80 border border-rose-200 rounded-2xl text-rose-900 font-semibold flex items-center gap-2 shadow-2xs">
@@ -2445,7 +2438,7 @@
       lucide.createIcons();
     }
 
-    // --- SOLVER ALGORITHM (CROSS-WEEK CLOPENING & DELI SUPPORT SEPARATION) ---
+    // --- SOLVER ALGORITHM (CLEAN OVERWRITE & CROSS-WEEK CLOPENING) ---
     function evaluateShiftPreferenceCost(emp, dayKey, targetShift) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
       if (!dayPrefs || dayPrefs.length === 0) return 40;
@@ -2481,11 +2474,13 @@
       const scheduleAssignments = {};
       const empHourTotals = {};
 
+      // CLEAN OVERWRITE: Completely reset prior assignments and hour tracking
       employees.forEach(emp => {
         scheduleAssignments[emp.id] = new Array(7).fill(null).map(() => ({
           ...getShiftDefinition("OFF"),
           isException: false,
-          isManual: false
+          isManual: false,
+          isMandatoryLock: false
         }));
         empHourTotals[emp.id] = 0;
       });
@@ -2512,21 +2507,7 @@
         };
       });
 
-      function getAssignedToWindow(dayIdx, category) {
-        return employees.filter(e => {
-          const s = scheduleAssignments[e.id][dayIdx];
-          return s && s.category === category && s.id !== 'OFF';
-        });
-      }
-
-      function hasRegisterCoverageInWindow(dayIdx, category) {
-        return employees.some(e => {
-          const s = scheduleAssignments[e.id][dayIdx];
-          return s && s.category === category && s.id !== 'OFF' && e.registerQualified;
-        });
-      }
-
-      // PASS 0: Mandatory Shift Allocations (Hard Locks)
+      // PASS 0: Profile-Level Mandatory Locks
       employees.forEach(emp => {
         const mandatory = emp.mandatoryShifts || {};
         DAYS_CONFIG.forEach((d, dayIdx) => {
@@ -2544,12 +2525,11 @@
             scheduleAssignments[emp.id][dayIdx] = { 
               ...shiftDef, 
               isException: false, 
-              isManual: true, 
+              isManual: false, 
               isMandatoryLock: true 
             };
             empHourTotals[emp.id] += shiftDef.hours;
 
-            // Dedicated deli production shifts do NOT consume frontline customer register slots
             const isProductionSupport = shiftDef.name.toLowerCase().includes('deli') || (emp.deliSpecialist && !emp.registerQualified);
             if (!isProductionSupport) {
               if (shiftDef.category === 'Morning') target.openSlots = Math.max(0, target.openSlots - 1);
@@ -2560,10 +2540,9 @@
         });
       });
 
-      // Sort execution order by Day Priority (Critical -> High -> Normal)
       const prioritizedExecutionOrder = [...dailyTargets].sort((a, b) => b.priorityMult - a.priorityMult);
 
-      // Pass 1: Mandatory Closing Keyholders
+      // Pass 1: Closing Keyholders
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2581,10 +2560,6 @@
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
-
-          const currentWindowStaff = getAssignedToWindow(target.dayIdx, "Closing");
-          if (currentWindowStaff.length === 0 && target.prefClose <= 1 && !e.soloEligible) return false;
-
           return true;
         }).sort((a, b) => {
           const aCloses = scheduleAssignments[a.id].filter(s => s.category === "Closing").length;
@@ -2607,7 +2582,6 @@
       });
 
       // Pass 2: Openers (Cross-Week Clopening Protected)
-      // Query previous week's Sunday close if available
       const [currY, currM, currD] = targetWeekMonday.split('-').map(Number);
       const prevMondayDate = new Date(currY, currM - 1, currD - 7);
       const prevMondayStr = `${prevMondayDate.getFullYear()}-${String(prevMondayDate.getMonth() + 1).padStart(2, '0')}-${String(prevMondayDate.getDate()).padStart(2, '0')}`;
@@ -2623,11 +2597,7 @@
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
 
-          const currentMorningStaff = getAssignedToWindow(target.dayIdx, "Morning");
-          if (currentMorningStaff.length === 0 && target.prefMorning <= 1 && !e.soloEligible) return false;
-          if (currentMorningStaff.length === 0 && target.prefMorning <= 1 && !e.registerQualified) return false;
-
-          // Cross-Week Anti-Clopening (Day 0 checks previous Sunday; other days check yesterday)
+          // Cross-Week Anti-Clopening
           if (target.dayIdx === 0 && prevWeekSchedule) {
             const prevSundayShift = prevWeekSchedule.assignments?.[e.id]?.[6];
             if (prevSundayShift && prevSundayShift.category === 'Closing') return false;
@@ -2638,11 +2608,6 @@
 
           return true;
         }).sort((a, b) => {
-          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Morning");
-          if (!regCovered && (a.registerQualified !== b.registerQualified)) {
-            return a.registerQualified ? -1 : 1;
-          }
-
           const aScore = evaluateShiftPreferenceCost(a, dayKey, openShift);
           const bScore = evaluateShiftPreferenceCost(b, dayKey, openShift);
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
@@ -2650,19 +2615,13 @@
 
         while (target.openSlots > 0 && openCandidates.length > 0) {
           const emp = openCandidates.shift();
-          
-          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Morning") || emp.registerQualified;
-          if (!regCovered && target.openSlots === 1) {
-            if (!emp.registerQualified) continue;
-          }
-
           scheduleAssignments[emp.id][target.dayIdx] = { ...openShift, isException: false, isManual: false };
           empHourTotals[emp.id] += openShift.hours;
           target.openSlots--;
         }
       });
 
-      // Pass 3: Remaining Closing Shifts
+      // Pass 3: Remaining Closers
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2672,18 +2631,8 @@
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
-
-          const currentCloseStaff = getAssignedToWindow(target.dayIdx, "Closing");
-          if (currentCloseStaff.length === 0 && target.prefClose <= 1 && !e.soloEligible) return false;
-          if (currentCloseStaff.length === 0 && target.prefClose <= 1 && !e.registerQualified) return false;
-
           return true;
         }).sort((a, b) => {
-          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Closing");
-          if (!regCovered && (a.registerQualified !== b.registerQualified)) {
-            return a.registerQualified ? -1 : 1;
-          }
-
           const aScore = evaluateShiftPreferenceCost(a, dayKey, closeShift);
           const bScore = evaluateShiftPreferenceCost(b, dayKey, closeShift);
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
@@ -2691,19 +2640,13 @@
 
         while (target.closeSlots > 0 && closeCandidates.length > 0) {
           const emp = closeCandidates.shift();
-          
-          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Closing") || emp.registerQualified;
-          if (!regCovered && target.closeSlots === 1) {
-            if (!emp.registerQualified) continue;
-          }
-
           scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
           empHourTotals[emp.id] += closeShift.hours;
           target.closeSlots--;
         }
       });
 
-      // Pass 4: Mid Shifts
+      // Pass 4: Mids
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2713,18 +2656,8 @@
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + midShift.hours > (e.maxHours || 35)) return false;
-
-          const currentMidStaff = getAssignedToWindow(target.dayIdx, "Mid");
-          if (currentMidStaff.length === 0 && target.prefMid <= 1 && !e.soloEligible) return false;
-          if (currentMidStaff.length === 0 && target.prefMid <= 1 && !e.registerQualified) return false;
-
           return true;
         }).sort((a, b) => {
-          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Mid");
-          if (!regCovered && target.prefMid <= 1 && (a.registerQualified !== b.registerQualified)) {
-            return a.registerQualified ? -1 : 1;
-          }
-
           const aDeliBonus = a.deliSpecialist ? -35 : 0;
           const bDeliBonus = b.deliSpecialist ? -35 : 0;
           const aScore = evaluateShiftPreferenceCost(a, dayKey, midShift) + aDeliBonus;
@@ -2734,19 +2667,13 @@
 
         while (target.midSlots > 0 && midCandidates.length > 0) {
           const emp = midCandidates.shift();
-
-          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Mid") || emp.registerQualified;
-          if (!regCovered && target.midSlots === 1) {
-            if (!emp.registerQualified) continue;
-          }
-
           scheduleAssignments[emp.id][target.dayIdx] = { ...midShift, isException: false, isManual: false };
           empHourTotals[emp.id] += midShift.hours;
           target.midSlots--;
         }
       });
 
-      // Scoring & Penalties with Day Priority Weight Multipliers
+      // Scoring & Penalties
       let totalPenaltyScore = 0;
       employees.forEach(emp => {
         const diff = Math.abs(empHourTotals[emp.id] - (emp.targetHours || 30));
@@ -2795,7 +2722,7 @@
       renderScheduleGrid();
 
       if (showFeedback) {
-        showToast(`Schedule generated with skills constraints and day priorities verified!`, "emerald");
+        showToast(`Schedule generated with clean overwrite and priority optimization!`, "emerald");
       }
     }
 
@@ -2870,7 +2797,7 @@
           diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
           diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
         } else {
-          diagText.textContent = `Schedule generated. Click "Verify Schedule" anytime to audit manual edits.`;
+          diagText.textContent = `Schedule generated. Click "Verify Schedule" anytime to check for rule violations.`;
           diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
         }
       }
