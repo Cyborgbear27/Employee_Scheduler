@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.0</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.1</span>
           </div>
-          <p class="text-xs text-slate-500">Day-Window Staff Optimization & Constraint Solver</p>
+          <p class="text-xs text-slate-500">Day-Window Staff Optimization & Constraint Solver (M / S / N)</p>
         </div>
       </div>
 
@@ -166,7 +166,7 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily shift window preferences (Morning, Mid, Night).</p>
+            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily shift window preferences (Morning, Swing, Night).</p>
           </div>
         </div>
 
@@ -305,7 +305,7 @@
               <i data-lucide="tags" class="w-4 h-4 text-indigo-600"></i>
               Shift Labels & Working Hours Templates
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Define shift labels, operational time blocks, and category groupings (Morning, Mid, Closing).</p>
+            <p class="text-xs text-slate-500 mt-0.5">Define shift labels, operational time blocks, and category groupings (Morning, Mid/Swing, Closing).</p>
           </div>
           <button onclick="openNewShiftModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -340,7 +340,7 @@
                 <th class="py-2.5 px-3 min-w-[120px]">Open Time</th>
                 <th class="py-2.5 px-3 min-w-[120px]">Close Time</th>
                 <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 rounded-tl-xl text-indigo-900 font-bold">Pref. Morning</th>
-                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 text-indigo-900 font-bold">Pref. Mid</th>
+                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 text-indigo-900 font-bold">Pref. Mid (Swing)</th>
                 <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 rounded-tr-xl text-indigo-900 font-bold">Pref. Closing</th>
                 <th class="py-2.5 px-3 text-right">Daily Hours</th>
               </tr>
@@ -445,7 +445,7 @@
                 <span id="weightVal_pref" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">50 pts / violation</span>
               </div>
               <input type="range" min="0" max="200" step="5" value="50" oninput="updateWeight('preferredShift', this.value, 'weightVal_pref', 'pts / violation')" class="w-full accent-indigo-600 cursor-pointer">
-              <p class="text-[11px] text-slate-400">Penalizes assigning someone outside their configured Morning / Mid / Night choices.</p>
+              <p class="text-[11px] text-slate-400">Penalizes assigning someone outside their configured Morning / Swing / Night choices.</p>
             </div>
 
             <div>
@@ -594,7 +594,7 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Edit Master Employee Profile</h3>
-            <p class="text-[11px] text-slate-500">Updates profile parameters and preferred daily shift windows.</p>
+            <p class="text-[11px] text-slate-500">Updates profile parameters and preferred daily shift windows (Morning, Swing, Night).</p>
           </div>
         </div>
         <button onclick="closeEditEmployeeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
@@ -713,7 +713,7 @@
             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category Bucket</label>
             <select id="shiftEditCategory" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl px-2.5 py-2">
               <option value="Morning">Morning (Opening)</option>
-              <option value="Mid">Mid (Midday Overlap)</option>
+              <option value="Mid">Mid (Swing Overlap)</option>
               <option value="Closing">Closing (Night Lock)</option>
               <option value="Support">Support / Float</option>
             </select>
@@ -934,7 +934,12 @@
   </div>
 
   <script>
-    const SHIFT_WINDOWS = ['Morning', 'Mid', 'Night'];
+    // Shift window definitions: Morning (M), Swing (S), Night (N)
+    const SHIFT_WINDOWS = [
+      { key: 'Morning', label: 'M', title: 'Morning' },
+      { key: 'Swing',   label: 'S', title: 'Swing' },
+      { key: 'Night',   label: 'N', title: 'Night' }
+    ];
 
     const DAYS_CONFIG = [
       { key: "Mon", label: "M", full: "Monday" },
@@ -971,19 +976,19 @@
       { 
         id: "ari", name: "Ari", maxHours: 35, targetHours: 32, minHours: 20, 
         keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
-        preferredWindows: { Mon: ['Morning','Mid','Night'], Tue: ['Morning','Mid','Night'], Wed: ['Morning','Mid','Night'], Thu: ['Morning','Mid','Night'], Fri: ['Morning','Mid','Night'], Sat: ['Morning','Night'], Sun: ['Morning','Night'] }, 
+        preferredWindows: { Mon: ['Morning','Swing','Night'], Tue: ['Morning','Swing','Night'], Wed: ['Morning','Swing','Night'], Thu: ['Morning','Swing','Night'], Fri: ['Morning','Swing','Night'], Sat: ['Morning','Night'], Sun: ['Morning','Night'] }, 
         unavailability: [] 
       },
       { 
         id: "luis", name: "Luis", maxHours: 25, targetHours: 23, minHours: 15, 
         keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
-        preferredWindows: makeWeekdayWindows(['Mid']), 
+        preferredWindows: makeWeekdayWindows(['Swing']), 
         unavailability: [] 
       },
       { 
         id: "alan", name: "Alan", maxHours: 25, targetHours: 20, minHours: 10, 
         keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
-        preferredWindows: { Mon: ['Mid'], Tue: [], Wed: ['Mid'], Thu: ['Mid'], Fri: ['Mid'], Sat: [], Sun: [] }, 
+        preferredWindows: { Mon: ['Swing'], Tue: [], Wed: ['Swing'], Thu: ['Swing'], Fri: ['Swing'], Sat: [], Sun: [] }, 
         unavailability: [] 
       },
       { 
@@ -1001,7 +1006,7 @@
       { 
         id: "lauren", name: "Lauren", maxHours: 22, targetHours: 18, minHours: 10, 
         keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
-        preferredWindows: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: ['Night'], Sat: ['Morning','Mid','Night'], Sun: ['Morning','Mid','Night'] }, 
+        preferredWindows: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: ['Night'], Sat: ['Morning','Swing','Night'], Sun: ['Morning','Swing','Night'] }, 
         unavailability: [] 
       }
     ];
@@ -1030,7 +1035,7 @@
         { dayKey: "Wed", dayLabel: "Wednesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
         { dayKey: "Thu", dayLabel: "Thursday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
         { dayKey: "Fri", dayLabel: "Friday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
-        { dayKey: "Saturday", dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
         { dayKey: "Sun", dayLabel: "Sunday", isClosed: false, open: "10:00", close: "20:00", prefMorning: 1, prefMid: 1, prefClose: 2 }
       ],
       holidayExceptions: [],
@@ -1059,7 +1064,7 @@
     let activeEditContext = null;
     let newMasterPrefsState = makeWeekdayWindows(['Morning', 'Night']);
 
-    // --- REUSABLE PREFERENCE MATRIX MODULE ---
+    // --- REUSABLE PREFERENCE MATRIX MODULE (M / S / N) ---
     function renderPreferenceMatrix(containerId, currentPrefs = {}, changeCallbackName, readOnly = false) {
       const container = document.getElementById(containerId);
       if (!container) return;
@@ -1073,21 +1078,21 @@
                 <span class="text-xs font-bold text-slate-800 mb-1">${d.label}</span>
                 <div class="flex flex-col gap-1 w-full">
                   ${SHIFT_WINDOWS.map(w => {
-                    const checked = dayPrefs.includes(w);
+                    const checked = dayPrefs.includes(w.key) || (w.key === 'Swing' && dayPrefs.includes('Mid'));
                     if (readOnly) {
                       return `
                         <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}">
-                          ${w[0]}
+                          ${w.label}
                         </span>
                       `;
                     }
                     return `
                       <label class="flex items-center justify-center p-1 rounded text-[10px] font-bold cursor-pointer transition select-none ${
                         checked ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
-                      }">
+                      }" title="${w.title}">
                         <input type="checkbox" class="sr-only" ${checked ? 'checked' : ''} 
-                               onchange="${changeCallbackName}('${d.key}', '${w}', this.checked)">
-                        <span>${w[0]}</span>
+                               onchange="${changeCallbackName}('${d.key}', '${w.key}', this.checked)">
+                        <span>${w.label}</span>
                       </label>
                     `;
                   }).join('')}
@@ -1097,7 +1102,7 @@
           }).join('')}
         </div>
         <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 px-1">
-          <span><strong>M</strong>: Morning &bull; <strong>M</strong>: Mid &bull; <strong>N</strong>: Night</span>
+          <span><strong>M</strong>: Morning &bull; <strong>S</strong>: Swing &bull; <strong>N</strong>: Night</span>
           <span>Unselected column = Day OFF</span>
         </div>
       `;
@@ -1152,7 +1157,7 @@
       if (isChecked) {
         if (!newMasterPrefsState[dayKey].includes(windowName)) newMasterPrefsState[dayKey].push(windowName);
       } else {
-        newMasterPrefsState[dayKey] = newMasterPrefsState[dayKey].filter(w => w !== windowName);
+        newMasterPrefsState[dayKey] = newMasterPrefsState[dayKey].filter(w => w !== windowName && !(windowName === 'Swing' && w === 'Mid'));
       }
       renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
     }
@@ -1340,7 +1345,7 @@
       if (isChecked) {
         if (!editEmpPrefsState[dayKey].includes(windowName)) editEmpPrefsState[dayKey].push(windowName);
       } else {
-        editEmpPrefsState[dayKey] = editEmpPrefsState[dayKey].filter(w => w !== windowName);
+        editEmpPrefsState[dayKey] = editEmpPrefsState[dayKey].filter(w => w !== windowName && !(windowName === 'Swing' && w === 'Mid'));
       }
       renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, 'handleEditEmpPrefToggle');
     }
@@ -1597,7 +1602,7 @@
         container.appendChild(card);
         renderPreferenceMatrix(`prefMatrixActive_${index}`, emp.preferredWindows || {}, `handleActivePrefToggle_${index}`);
 
-        // Define dynamic handler on window for this card index
+        // Register dynamic handler on window for this card index
         window[`handleActivePrefToggle_${index}`] = function(dayKey, windowName, isChecked) {
           if (!activeRoster[index].preferredWindows) activeRoster[index].preferredWindows = {};
           if (!activeRoster[index].preferredWindows[dayKey]) activeRoster[index].preferredWindows[dayKey] = [];
@@ -1606,7 +1611,7 @@
               activeRoster[index].preferredWindows[dayKey].push(windowName);
             }
           } else {
-            activeRoster[index].preferredWindows[dayKey] = activeRoster[index].preferredWindows[dayKey].filter(w => w !== windowName);
+            activeRoster[index].preferredWindows[dayKey] = activeRoster[index].preferredWindows[dayKey].filter(w => w !== windowName && !(windowName === 'Swing' && w === 'Mid'));
           }
           saveActiveRoster();
           renderPreferenceMatrix(`prefMatrixActive_${index}`, activeRoster[index].preferredWindows, `handleActivePrefToggle_${index}`);
@@ -2134,11 +2139,16 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- SOLVER ALGORITHM (ROTATIONAL ANTI-CLOPENING) ---
+    // --- SOLVER ALGORITHM (ROTATIONAL ANTI-CLOPENING & M / S / N) ---
     function getPreferenceScore(emp, dayKey, windowCategory) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
       if (!dayPrefs || dayPrefs.length === 0) return 40; // Penalize scheduling on preferred OFF day
-      if (dayPrefs.includes(windowCategory)) return -30;  // Reward match
+      
+      // Accept both 'Swing' and legacy 'Mid'
+      const targetMatches = windowCategory === 'Mid' || windowCategory === 'Swing' ? ['Mid', 'Swing'] : [windowCategory];
+      const hasMatch = targetMatches.some(cat => dayPrefs.includes(cat));
+
+      if (hasMatch) return -30;  // Reward match
       return 20; // Penalize working non-preferred window
     }
 
@@ -2279,7 +2289,7 @@
         }
       });
 
-      // Pass 4: Mid Shifts (Prioritizing Stock Specialists on Truck days like Thursday)
+      // Pass 4: Mid Shifts (Swing)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
         const dayKey = DAYS_CONFIG[target.dayIdx].key;
@@ -2293,8 +2303,8 @@
         }).sort((a, b) => {
           const aDeliBonus = a.deliSpecialist ? -30 : 0;
           const bDeliBonus = b.deliSpecialist ? -30 : 0;
-          const aScore = getPreferenceScore(a, dayKey, 'Mid') + aDeliBonus;
-          const bScore = getPreferenceScore(b, dayKey, 'Mid') + bDeliBonus;
+          const aScore = getPreferenceScore(a, dayKey, 'Swing') + aDeliBonus;
+          const bScore = getPreferenceScore(b, dayKey, 'Swing') + bDeliBonus;
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
@@ -2324,8 +2334,9 @@
               if (dayPrefs.length === 0) {
                 totalPenaltyScore += (weights.preferredShift || 50); // Worked on requested day OFF
               } else {
-                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Mid";
-                if (!dayPrefs.includes(shiftCategoryToWindow)) {
+                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Swing";
+                const matchesPref = dayPrefs.includes(shiftCategoryToWindow) || (shiftCategoryToWindow === 'Swing' && dayPrefs.includes('Mid'));
+                if (!matchesPref) {
                   totalPenaltyScore += (weights.preferredShift || 50); // Worked non-preferred window
                 }
               }
@@ -2533,7 +2544,7 @@
 
         <tr class="bg-indigo-50/40 text-indigo-950 font-bold border-t border-indigo-100">
           <td class="py-2.5 px-3 sticky left-0 bg-indigo-50/90 z-10 border-r border-slate-200">
-            Pref. Mid (${dailyAssignedMid.reduce((a,b)=>a+b,0)} assigned)
+            Pref. Mid / Swing (${dailyAssignedMid.reduce((a,b)=>a+b,0)} assigned)
           </td>
           ${dailyTargetsCells(dailyAssignedMid, 'prefMid')}
           <td class="py-2 px-3 text-right font-bold text-indigo-900 border-l border-slate-200">--</td>
@@ -2838,8 +2849,9 @@
               if (dayPrefs.length === 0) {
                 penalty += (weights.preferredShift || 50);
               } else {
-                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Mid";
-                if (!dayPrefs.includes(shiftCategoryToWindow)) {
+                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Swing";
+                const matchesPref = dayPrefs.includes(shiftCategoryToWindow) || (shiftCategoryToWindow === 'Swing' && dayPrefs.includes('Mid'));
+                if (!matchesPref) {
                   penalty += (weights.preferredShift || 50);
                 }
               }
@@ -2866,7 +2878,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.0",
+        systemVersion: "5.1",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -2886,7 +2898,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.0",
+        systemVersion: "5.1",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
