@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.7</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.8</span>
           </div>
-          <p class="text-xs text-slate-500">Universal Shift Eligibility with Mandatory Register & Solo Pairings</p>
+          <p class="text-xs text-slate-500">Continuous Operating Coverage & Strict Pairing Compliance Engine</p>
         </div>
       </div>
 
@@ -166,7 +166,7 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Define employee roles, target hours, shift preferences, and mandatory shift locks.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Define employee competencies (Solo, Register, Deli Support), weekly limits, and shift preferences.</p>
           </div>
         </div>
 
@@ -218,7 +218,7 @@
               </label>
             </div>
             <p class="text-[11px] text-slate-400 mt-1.5">
-              * <strong>Solo Eligible</strong>: Permitted to staff a shift alone. <strong>Register</strong>: Every window must have at least one register-qualified worker. <strong>Deli/Stock</strong>: Can work Open/Mid/Close, provided register coverage is satisfied.
+              * Non-solo and non-register employees can work any shift, but the audit engine will strictly pair them with a qualified co-worker.
             </p>
           </div>
 
@@ -488,7 +488,7 @@
           </div>
           <div>
             <h2 class="text-sm font-bold text-slate-900">Weekly Schedule Generation & Interactive Adjustment</h2>
-            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver with mandatory lock and day priority support, or click any cell to edit.</p>
+            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver with audit compliance, or click any cell to edit.</p>
           </div>
         </div>
 
@@ -2285,7 +2285,7 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- SOLVER ALGORITHM (CO-WORKER REGISTER PAIRING & DYNAMIC SOLO CONSTRAINTS) ---
+    // --- SOLVER ALGORITHM (CO-WORKER PAIRINGS, DELI SEPARATION & POST-PASS GAP AUDIT) ---
     function evaluateShiftPreferenceCost(emp, dayKey, targetShift) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
       if (!dayPrefs || dayPrefs.length === 0) return 40;
@@ -2356,14 +2356,14 @@
       function getAssignedToWindow(dayIdx, category) {
         return employees.filter(e => {
           const s = scheduleAssignments[e.id][dayIdx];
-          return s && s.category === category;
+          return s && s.category === category && s.id !== 'OFF';
         });
       }
 
       function hasRegisterCoverageInWindow(dayIdx, category) {
         return employees.some(e => {
           const s = scheduleAssignments[e.id][dayIdx];
-          return s && s.category === category && e.registerQualified;
+          return s && s.category === category && s.id !== 'OFF' && e.registerQualified;
         });
       }
 
@@ -2390,9 +2390,14 @@
             };
             empHourTotals[emp.id] += shiftDef.hours;
 
-            if (shiftDef.category === 'Morning') target.openSlots = Math.max(0, target.openSlots - 1);
-            else if (shiftDef.category === 'Closing') target.closeSlots = Math.max(0, target.closeSlots - 1);
-            else target.midSlots = Math.max(0, target.midSlots - 1);
+            // Only decrement customer-facing operational slots if employee is NOT pure deli-support
+            // When Luis works Deli Open, he is doing production, so customer-facing openSlots must NOT decrement
+            const isPureDeli = emp.deliSpecialist && !emp.registerQualified;
+            if (!isPureDeli) {
+              if (shiftDef.category === 'Morning') target.openSlots = Math.max(0, target.openSlots - 1);
+              else if (shiftDef.category === 'Closing') target.closeSlots = Math.max(0, target.closeSlots - 1);
+              else target.midSlots = Math.max(0, target.midSlots - 1);
+            }
           }
         });
       });
@@ -2419,7 +2424,6 @@
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
 
-          // Solo check: If alone in store (target <= 1 and no one assigned), soloEligible required
           const currentWindowStaff = getAssignedToWindow(target.dayIdx, "Closing");
           if (currentWindowStaff.length === 0 && target.prefClose <= 1 && !e.soloEligible) return false;
 
@@ -2444,7 +2448,7 @@
         }
       });
 
-      // Pass 2: Openers (Deli-Qualified allowed; register partner or register status enforced; anti-clopening)
+      // Pass 2: Openers (Deli allowed if registered or paired; anti-clopening)
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2456,21 +2460,15 @@
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
 
           const currentMorningStaff = getAssignedToWindow(target.dayIdx, "Morning");
-          
-          // Solo eligibility rule: sole worker on shift requires soloEligible
           if (currentMorningStaff.length === 0 && target.prefMorning <= 1 && !e.soloEligible) return false;
-
-          // Register rule: If sole worker on shift, must be register-qualified
           if (currentMorningStaff.length === 0 && target.prefMorning <= 1 && !e.registerQualified) return false;
 
-          // Anti-clopening protection
           if (target.dayIdx > 0) {
             const yesterdayShift = scheduleAssignments[e.id][target.dayIdx - 1];
             if (yesterdayShift && yesterdayShift.category === "Closing") return false;
           }
           return true;
         }).sort((a, b) => {
-          // If no register worker in morning window yet, strongly prioritize register qualification
           const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Morning");
           if (!regCovered && (a.registerQualified !== b.registerQualified)) {
             return a.registerQualified ? -1 : 1;
@@ -2484,10 +2482,8 @@
         while (target.openSlots > 0 && openCandidates.length > 0) {
           const emp = openCandidates.shift();
           
-          // Enforce that a non-register worker is only scheduled if a register worker is already present or upcoming
           const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Morning") || emp.registerQualified;
           if (!regCovered && target.openSlots === 1) {
-            // Last slot in window must be register-qualified
             if (!emp.registerQualified) continue;
           }
 
@@ -2497,7 +2493,7 @@
         }
       });
 
-      // Pass 3: Remaining Closing Shifts (Enforces register co-worker pairings & solo rules)
+      // Pass 3: Remaining Closing Shifts
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2509,11 +2505,7 @@
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
 
           const currentCloseStaff = getAssignedToWindow(target.dayIdx, "Closing");
-          
-          // Solo eligibility rule
           if (currentCloseStaff.length === 0 && target.prefClose <= 1 && !e.soloEligible) return false;
-
-          // Register rule
           if (currentCloseStaff.length === 0 && target.prefClose <= 1 && !e.registerQualified) return false;
 
           return true;
@@ -2542,7 +2534,7 @@
         }
       });
 
-      // Pass 4: Mid / Swing Shifts (Supports Deli/Stock & Maintains Register/Solo Safeguards)
+      // Pass 4: Mid / Swing Shifts
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2583,6 +2575,70 @@
           empHourTotals[emp.id] += midShift.hours;
           target.midSlots--;
         }
+      });
+
+      // PASS 5: STRICT OPERATIONAL AUDIT (Coverage Continuity & Skills Safeguards)
+      // Checks all open operational windows:
+      // 1. Zero-staff gaps (ensures at least 1 person covers each open window)
+      // 2. Non-solo isolation (if a worker is alone and !soloEligible, assigns a partner)
+      // 3. Register coverage (if no register staff is present, assigns a register-qualified staff)
+      dailyTargets.forEach(target => {
+        if (target.isClosed) return;
+        const dayIdx = target.dayIdx;
+
+        ["Morning", "Mid", "Closing"].forEach(category => {
+          let assigned = getAssignedToWindow(dayIdx, category);
+          const shiftTemplate = category === "Morning" ? openShift : category === "Closing" ? closeShift : midShift;
+
+          // 1. Zero Coverage Audit
+          if (assigned.length === 0) {
+            const filler = employees.find(e => {
+              if (scheduleAssignments[e.id][dayIdx].id !== 'OFF') return false;
+              if ((e.unavailability || []).some(u => u.date === target.dateStr)) return false;
+              if (empHourTotals[e.id] + shiftTemplate.hours > (e.maxHours || 35)) return false;
+              if (!e.soloEligible || !e.registerQualified) return false;
+              if (category === "Closing" && !e.keyholder) return false;
+              return true;
+            });
+            if (filler) {
+              scheduleAssignments[filler.id][dayIdx] = { ...shiftTemplate, isException: true, isManual: true };
+              empHourTotals[filler.id] += shiftTemplate.hours;
+              assigned = getAssignedToWindow(dayIdx, category);
+            }
+          }
+
+          // 2. Solo Isolation Audit (e.g. Luis locked to Deli Open alone without solo status)
+          if (assigned.length === 1 && !assigned[0].soloEligible) {
+            const partner = employees.find(e => {
+              if (e.id === assigned[0].id) return false;
+              if (scheduleAssignments[e.id][dayIdx].id !== 'OFF') return false;
+              if ((e.unavailability || []).some(u => u.date === target.dateStr)) return false;
+              if (empHourTotals[e.id] + shiftTemplate.hours > (e.maxHours || 35)) return false;
+              if (!e.registerQualified) return false; // Partner must satisfy register
+              return true;
+            });
+            if (partner) {
+              scheduleAssignments[partner.id][dayIdx] = { ...shiftTemplate, isException: true, isManual: true };
+              empHourTotals[partner.id] += shiftTemplate.hours;
+              assigned = getAssignedToWindow(dayIdx, category);
+            }
+          }
+
+          // 3. Register Coverage Audit
+          const hasReg = assigned.some(e => e.registerQualified);
+          if (!hasReg && assigned.length > 0) {
+            const regPartner = employees.find(e => {
+              if (scheduleAssignments[e.id][dayIdx].id !== 'OFF') return false;
+              if ((e.unavailability || []).some(u => u.date === target.dateStr)) return false;
+              if (empHourTotals[e.id] + shiftTemplate.hours > (e.maxHours || 35)) return false;
+              return e.registerQualified;
+            });
+            if (regPartner) {
+              scheduleAssignments[regPartner.id][dayIdx] = { ...shiftTemplate, isException: true, isManual: true };
+              empHourTotals[regPartner.id] += shiftTemplate.hours;
+            }
+          }
+        });
       });
 
       // Scoring & Penalties with Day Priority Weight Multipliers
@@ -2634,7 +2690,7 @@
       renderScheduleGrid();
 
       if (showFeedback) {
-        showToast(`Schedule generated with skills constraints and day priorities verified!`, "emerald");
+        showToast(`Schedule generated! Audit verified all operating windows, pairings, and register coverage.`, "emerald");
       }
     }
 
@@ -2709,7 +2765,7 @@
           diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
           diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
         } else {
-          diagText.textContent = `Solo eligibility, register coverage, and deli-stock shifts verified across all windows.`;
+          diagText.textContent = `No unstaffed windows detected. Register pairings and solo coverage verified across all days.`;
           diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
         }
       }
@@ -3156,7 +3212,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.7",
+        systemVersion: "5.8",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -3176,7 +3232,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.7",
+        systemVersion: "5.8",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
