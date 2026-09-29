@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.4</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.5</span>
           </div>
-          <p class="text-xs text-slate-500">Auto-Derived Shift Categories & Mandatory Shift Constraints</p>
+          <p class="text-xs text-slate-500">Day Priority Weighting & Shift Allocation Engine</p>
         </div>
       </div>
 
@@ -325,9 +325,9 @@
           <div>
             <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
               <i data-lucide="clock" class="w-4 h-4 text-indigo-600"></i>
-              Weekly Store Hours & Preferred Daily Headcount
+              Weekly Store Hours, Day Priority & Preferred Headcount
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Operating schedule and staffing headcount targets by shift window.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Set day priority weights (Normal, High, Critical) to guide solver focus before preferred headcounts.</p>
           </div>
           <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" id="badgeTotalOpenHours">
             82.0 Operating Hours
@@ -340,11 +340,12 @@
               <tr class="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                 <th class="py-2.5 px-3 min-w-[100px]">Day of Week</th>
                 <th class="py-2.5 px-3 min-w-[90px]">Status</th>
-                <th class="py-2.5 px-3 min-w-[120px]">Open Time</th>
-                <th class="py-2.5 px-3 min-w-[120px]">Close Time</th>
-                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 rounded-tl-xl text-indigo-900 font-bold">Pref. Morning</th>
-                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 text-indigo-900 font-bold">Pref. Mid (Swing)</th>
-                <th class="py-2.5 px-3 min-w-[110px] text-center bg-indigo-50/50 rounded-tr-xl text-indigo-900 font-bold">Pref. Closing</th>
+                <th class="py-2.5 px-3 min-w-[110px]">Open Time</th>
+                <th class="py-2.5 px-3 min-w-[110px]">Close Time</th>
+                <th class="py-2.5 px-3 min-w-[120px] bg-slate-50 text-slate-700 font-bold">Day Priority</th>
+                <th class="py-2.5 px-3 min-w-[100px] text-center bg-indigo-50/50 rounded-tl-xl text-indigo-900 font-bold">Pref. Morning</th>
+                <th class="py-2.5 px-3 min-w-[100px] text-center bg-indigo-50/50 text-indigo-900 font-bold">Pref. Mid (Swing)</th>
+                <th class="py-2.5 px-3 min-w-[100px] text-center bg-indigo-50/50 rounded-tr-xl text-indigo-900 font-bold">Pref. Closing</th>
                 <th class="py-2.5 px-3 text-right">Daily Hours</th>
               </tr>
             </thead>
@@ -484,7 +485,7 @@
           </div>
           <div>
             <h2 class="text-sm font-bold text-slate-900">Weekly Schedule Generation & Interactive Adjustment</h2>
-            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver with mandatory lock support, or click any cell to edit.</p>
+            <p class="text-xs text-slate-500">Pick a target week, run the heuristic solver with mandatory lock and day priority support, or click any cell to edit.</p>
           </div>
         </div>
 
@@ -884,7 +885,7 @@
 
       <div class="space-y-4">
         <p class="text-xs text-slate-600 leading-relaxed">
-          Export the entire scheduling model—including employee profiles with day-window preferences, mandatory locks, holiday exceptions, shift definitions, and consistency weights—as a single JSON file.
+          Export the entire scheduling model—including employee profiles with day-window preferences, day priority configurations, holiday exceptions, shift definitions, and consistency weights—as a single JSON file.
         </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -965,13 +966,13 @@
     const DEFAULT_STORE_CONFIG = {
       shiftLabels: FACTORY_SHIFT_LABELS,
       operatingHours: [
-        { dayKey: "Mon", dayLabel: "Monday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
-        { dayKey: "Tue", dayLabel: "Tuesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
-        { dayKey: "Wed", dayLabel: "Wednesday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 1, prefClose: 2 },
-        { dayKey: "Thu", dayLabel: "Thursday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
-        { dayKey: "Fri", dayLabel: "Friday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
-        { dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", prefMorning: 1, prefMid: 2, prefClose: 2 },
-        { dayKey: "Sun", dayLabel: "Sunday", isClosed: false, open: "10:00", close: "20:00", prefMorning: 1, prefMid: 1, prefClose: 2 }
+        { dayKey: "Mon", dayLabel: "Monday", isClosed: false, open: "09:00", close: "21:00", priority: "Normal", prefMorning: 1, prefMid: 1, prefClose: 2 },
+        { dayKey: "Tue", dayLabel: "Tuesday", isClosed: false, open: "09:00", close: "21:00", priority: "Normal", prefMorning: 1, prefMid: 1, prefClose: 2 },
+        { dayKey: "Wed", dayLabel: "Wednesday", isClosed: false, open: "09:00", close: "21:00", priority: "Normal", prefMorning: 1, prefMid: 1, prefClose: 2 },
+        { dayKey: "Thu", dayLabel: "Thursday", isClosed: false, open: "09:00", close: "21:00", priority: "High", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Fri", dayLabel: "Friday", isClosed: false, open: "09:00", close: "21:00", priority: "High", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Sat", dayLabel: "Saturday", isClosed: false, open: "09:00", close: "21:00", priority: "Critical", prefMorning: 1, prefMid: 2, prefClose: 2 },
+        { dayKey: "Sun", dayLabel: "Sunday", isClosed: false, open: "10:00", close: "20:00", priority: "Critical", prefMorning: 1, prefMid: 1, prefClose: 2 }
       ],
       holidayExceptions: [],
       operationalConstraints: {
@@ -1042,7 +1043,7 @@
         id: "luis", name: "Luis", maxHours: 25, targetHours: 23, minHours: 15, 
         keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_MID'], Tue: ['SHIFT_MID'], Wed: ['SHIFT_MID'], Thu: ['SHIFT_MID'], Fri: ['SHIFT_MID'], Sat: [], Sun: [] }, 
-        mandatoryShifts: { Thu: 'SHIFT_MID' }, // Mandatory mid-shift for deliveries
+        mandatoryShifts: { Thu: 'SHIFT_MID' },
         unavailability: [] 
       },
       { 
@@ -1169,6 +1170,14 @@
         } else {
           storeConfig.shiftLabels.forEach(s => {
             s.category = deriveShiftCategory(s.startTime, s.endTime);
+          });
+        }
+        // Normalize priority on operating hours if upgrading from older version
+        if (storeConfig.operatingHours) {
+          storeConfig.operatingHours.forEach(oh => {
+            if (!oh.priority) {
+              oh.priority = ["Sat", "Sun"].includes(oh.dayKey) ? "Critical" : oh.dayKey === "Thu" || oh.dayKey === "Fri" ? "High" : "Normal";
+            }
           });
         }
       } catch (e) {
@@ -2108,6 +2117,8 @@
           dayDurationStr = "Closed";
         }
 
+        const prio = day.priority || "Normal";
+
         tr.innerHTML = `
           <td class="py-3 px-3 font-bold text-slate-800">${day.dayLabel}</td>
           <td class="py-3 px-3">
@@ -2123,6 +2134,16 @@
             <input type="time" value="${day.close || '21:00'}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'close', this.value)" class="bg-slate-50 border border-slate-300 text-xs rounded-xl px-2 py-1.5 text-slate-800 disabled:opacity-40">
           </td>
           
+          <td class="py-3 px-3 bg-slate-50">
+            <select onchange="updateDayHours(${index}, 'priority', this.value)" class="text-xs font-semibold rounded-xl border border-slate-200 bg-white px-2 py-1.5 focus:ring-2 focus:ring-indigo-500 ${
+              prio === 'Critical' ? 'text-rose-700 font-black' : prio === 'High' ? 'text-amber-700 font-bold' : 'text-slate-700'
+            }">
+              <option value="Normal" ${prio === 'Normal' ? 'selected' : ''}>Normal</option>
+              <option value="High" ${prio === 'High' ? 'selected' : ''}>High</option>
+              <option value="Critical" ${prio === 'Critical' ? 'selected' : ''}>Critical</option>
+            </select>
+          </td>
+
           <td class="py-3 px-3 text-center bg-indigo-50/30">
             <input type="number" min="0" max="10" value="${day.prefMorning ?? 1}" ${day.isClosed ? 'disabled' : ''} onchange="updateDayHours(${index}, 'prefMorning', Number(this.value))" class="w-16 mx-auto text-center bg-white border border-indigo-200 text-xs rounded-xl py-1 font-bold text-indigo-900 disabled:opacity-40">
           </td>
@@ -2260,12 +2281,18 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- SOLVER ALGORITHM (PASS 0 MANDATORY LOCKS + ROTATIONAL HEURISTICS) ---
+    // --- SOLVER ALGORITHM (PHASE-ORDERED BY DAY PRIORITY + PASS 0 MANDATORY LOCKS) ---
     function evaluateShiftPreferenceCost(emp, dayKey, targetShift) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
       if (!dayPrefs || dayPrefs.length === 0) return 40;
       if (isShiftPreferred(dayPrefs, targetShift)) return -30;
       return 20;
+    }
+
+    function getPriorityMultiplier(priorityLabel) {
+      if (priorityLabel === 'Critical') return 2.0;
+      if (priorityLabel === 'High') return 1.5;
+      return 1.0;
     }
 
     function runScheduleSolver() {
@@ -2300,12 +2327,17 @@
       });
 
       const dailyTargets = weekDates.map((wDate, dayIdx) => {
-        const opDay = storeConfig.operatingHours[dayIdx] || { prefMorning: 1, prefMid: 1, prefClose: 2, isClosed: false };
+        const opDay = storeConfig.operatingHours[dayIdx] || { prefMorning: 1, prefMid: 1, prefClose: 2, isClosed: false, priority: "Normal" };
         const hol = (storeConfig.holidayExceptions || []).find(h => h.date === wDate.dateStr);
         const isClosed = hol ? hol.isClosed : opDay.isClosed;
+        const priorityLabel = opDay.priority || "Normal";
+
         return {
           dayIdx,
           dateStr: wDate.dateStr,
+          dayKey: DAYS_CONFIG[dayIdx].key,
+          priority: priorityLabel,
+          priorityMult: getPriorityMultiplier(priorityLabel),
           isClosed,
           openSlots: isClosed ? 0 : (opDay.prefMorning || 1),
           midSlots: isClosed ? 0 : (opDay.prefMid || 1),
@@ -2336,7 +2368,6 @@
             };
             empHourTotals[emp.id] += shiftDef.hours;
 
-            // Deduct required daily headcount
             if (shiftDef.category === 'Morning') target.openSlots = Math.max(0, target.openSlots - 1);
             else if (shiftDef.category === 'Closing') target.closeSlots = Math.max(0, target.closeSlots - 1);
             else target.midSlots = Math.max(0, target.midSlots - 1);
@@ -2344,12 +2375,14 @@
         });
       });
 
-      // Pass 1: Mandatory Closing Keyholders (Rotational & Preference-Scored)
-      dailyTargets.forEach(target => {
-        if (target.isClosed) return;
-        const dayKey = DAYS_CONFIG[target.dayIdx].key;
+      // Sort solving order: Critical days (2.0x) -> High days (1.5x) -> Normal days (1.0x)
+      const prioritizedExecutionOrder = [...dailyTargets].sort((a, b) => b.priorityMult - a.priorityMult);
 
-        // Check if a keyholder is already closing today via Pass 0
+      // Pass 1: Mandatory Closing Keyholders (Solved in priority order)
+      prioritizedExecutionOrder.forEach(target => {
+        if (target.isClosed) return;
+        const dayKey = target.dayKey;
+
         const alreadyClosingKeyholders = employees.filter(e => 
           e.keyholder && scheduleAssignments[e.id][target.dayIdx].category === 'Closing'
         ).length;
@@ -2384,10 +2417,10 @@
         }
       });
 
-      // Pass 2: Openers (Anti-Clopening & Preference-Scored)
-      dailyTargets.forEach(target => {
+      // Pass 2: Openers (Solved in priority order with anti-clopening)
+      prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
-        const dayKey = DAYS_CONFIG[target.dayIdx].key;
+        const dayKey = target.dayKey;
 
         const openCandidates = employees.filter(e => {
           if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
@@ -2395,6 +2428,7 @@
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
 
+          // Anti-clopening check
           if (target.dayIdx > 0) {
             const yesterdayShift = scheduleAssignments[e.id][target.dayIdx - 1];
             if (yesterdayShift && yesterdayShift.category === "Closing") return false;
@@ -2415,9 +2449,9 @@
       });
 
       // Pass 3: Remaining Closing Shifts
-      dailyTargets.forEach(target => {
+      prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
-        const dayKey = DAYS_CONFIG[target.dayIdx].key;
+        const dayKey = target.dayKey;
 
         const closeCandidates = employees.filter(e => {
           if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
@@ -2440,9 +2474,9 @@
       });
 
       // Pass 4: Mid Shifts (Swing)
-      dailyTargets.forEach(target => {
+      prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
-        const dayKey = DAYS_CONFIG[target.dayIdx].key;
+        const dayKey = target.dayKey;
 
         const midCandidates = employees.filter(e => {
           if (scheduleAssignments[e.id][target.dayIdx].id !== "OFF") return false;
@@ -2466,7 +2500,7 @@
         }
       });
 
-      // Scoring & Penalties
+      // Scoring & Penalties with Day Priority Weight Multipliers
       let totalPenaltyScore = 0;
       employees.forEach(emp => {
         const diff = Math.abs(empHourTotals[emp.id] - (emp.targetHours || 30));
@@ -2477,14 +2511,17 @@
         let consecutiveDays = 0;
         scheduleAssignments[emp.id].forEach((shift, dIdx) => {
           const dayKey = DAYS_CONFIG[dIdx].key;
+          const dayTarget = dailyTargets[dIdx];
+          const multiplier = dayTarget.priorityMult || 1.0;
+
           if (shift.id !== "OFF") {
             consecutiveDays++;
             if (!shift.isException && !shift.isMandatoryLock) {
               const dayPrefs = emp.preferredWindows?.[dayKey] || [];
               if (dayPrefs.length === 0) {
-                totalPenaltyScore += (weights.preferredShift || 50);
+                totalPenaltyScore += Math.round((weights.preferredShift || 50) * multiplier);
               } else if (!isShiftPreferred(dayPrefs, shift)) {
-                totalPenaltyScore += (weights.preferredShift || 50);
+                totalPenaltyScore += Math.round((weights.preferredShift || 50) * multiplier);
               }
             }
           } else {
@@ -2512,7 +2549,7 @@
       renderScheduleGrid();
 
       if (showFeedback) {
-        showToast(`Schedule computed for week of ${targetWeekMonday}!`, "emerald");
+        showToast(`Schedule computed for week of ${targetWeekMonday} (Day-Priority Optimized)!`, "emerald");
       }
     }
 
@@ -2533,10 +2570,14 @@
 
       weekDates.forEach((wDate, idx) => {
         const th = document.getElementById(`th_col_${idx}`);
+        const opDay = storeConfig.operatingHours[idx] || {};
+        const prio = opDay.priority || "Normal";
+
         if (th) {
           th.innerHTML = `
             <div class="flex items-center justify-center gap-1">
               <span>${wDate.shortDay}</span>
+              ${prio === 'Critical' ? '<span class="w-1.5 h-1.5 rounded-full bg-rose-500" title="Critical Priority Day"></span>' : prio === 'High' ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="High Priority Day"></span>' : ''}
               <button onclick="openAddPersonToDayModal(${idx})" class="text-indigo-600 hover:text-indigo-900 font-bold p-0.5" title="Add person to ${wDate.shortDay}">
                 <i data-lucide="plus" class="w-3 h-3"></i>
               </button>
@@ -2583,7 +2624,7 @@
           diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
           diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
         } else {
-          diagText.textContent = `Headcount, mandatory shift locks, and closing keyholder rotation verified.`;
+          diagText.textContent = `Headcount, priority days, mandatory locks, and keyholder rotation verified.`;
           diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
         }
       }
@@ -2993,14 +3034,17 @@
         let consec = 0;
         (schedule.assignments[emp.id] || []).forEach((shift, dIdx) => {
           const dayKey = DAYS_CONFIG[dIdx].key;
+          const opDay = storeConfig.operatingHours[dIdx] || {};
+          const multiplier = getPriorityMultiplier(opDay.priority || "Normal");
+
           if (shift.id !== "OFF") {
             consec++;
             if (!shift.isException && !shift.isMandatoryLock) {
               const dayPrefs = emp.preferredWindows?.[dayKey] || [];
               if (dayPrefs.length === 0) {
-                penalty += (weights.preferredShift || 50);
+                penalty += Math.round((weights.preferredShift || 50) * multiplier);
               } else if (!isShiftPreferred(dayPrefs, shift)) {
-                penalty += (weights.preferredShift || 50);
+                penalty += Math.round((weights.preferredShift || 50) * multiplier);
               }
             }
           } else {
@@ -3025,7 +3069,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.4",
+        systemVersion: "5.5",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -3045,7 +3089,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.4",
+        systemVersion: "5.5",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
