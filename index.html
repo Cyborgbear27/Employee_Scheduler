@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.1</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.2</span>
           </div>
-          <p class="text-xs text-slate-500">Day-Window Staff Optimization & Constraint Solver (M / S / N)</p>
+          <p class="text-xs text-slate-500">Dynamic Shift Label Preferences & Roster Optimization</p>
         </div>
       </div>
 
@@ -136,13 +136,13 @@
 
       <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Shift Labels</span>
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Configured Shifts</span>
           <div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
             <i data-lucide="tags" class="w-4 h-4"></i>
           </div>
         </div>
         <div class="text-2xl font-black text-slate-900 mt-2" id="metricShiftLabelsCount">3</div>
-        <p class="text-[11px] text-slate-400 mt-0.5">Configured shift templates</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Assigned to preference picker</p>
       </div>
 
       <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
@@ -166,7 +166,7 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily shift window preferences (Morning, Swing, Night).</p>
+            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, and daily preferences mapped to configured shift labels.</p>
           </div>
         </div>
 
@@ -220,7 +220,10 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Preferred Shift Windows by Day</label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Shift Label Preferences by Day</label>
+              <span class="text-[11px] text-slate-400">Pulls live shift definitions from Store Settings</span>
+            </div>
             <div id="newMasterPrefMatrix"></div>
           </div>
 
@@ -305,7 +308,7 @@
               <i data-lucide="tags" class="w-4 h-4 text-indigo-600"></i>
               Shift Labels & Working Hours Templates
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Define shift labels, operational time blocks, and category groupings (Morning, Mid/Swing, Closing).</p>
+            <p class="text-xs text-slate-500 mt-0.5">Customize default shift times or create custom labels. These labels automatically populate as selectable preference options on all employee profiles.</p>
           </div>
           <button onclick="openNewShiftModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -441,11 +444,11 @@
           <div class="space-y-3.5">
             <div>
               <div class="flex items-center justify-between text-xs mb-1">
-                <span class="font-bold text-slate-800">Preferred Window Deviation</span>
+                <span class="font-bold text-slate-800">Preferred Shift Label Deviation</span>
                 <span id="weightVal_pref" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">50 pts / violation</span>
               </div>
               <input type="range" min="0" max="200" step="5" value="50" oninput="updateWeight('preferredShift', this.value, 'weightVal_pref', 'pts / violation')" class="w-full accent-indigo-600 cursor-pointer">
-              <p class="text-[11px] text-slate-400">Penalizes assigning someone outside their configured Morning / Swing / Night choices.</p>
+              <p class="text-[11px] text-slate-400">Penalizes assigning someone to a shift label they did not select for that day.</p>
             </div>
 
             <div>
@@ -594,7 +597,7 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Edit Master Employee Profile</h3>
-            <p class="text-[11px] text-slate-500">Updates profile parameters and preferred daily shift windows (Morning, Swing, Night).</p>
+            <p class="text-[11px] text-slate-500">Updates profile parameters and preferred daily shift assignments.</p>
           </div>
         </div>
         <button onclick="closeEditEmployeeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
@@ -655,7 +658,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Preferred Shift Windows by Day</label>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Shift Label Preferences by Day</label>
           <div id="editEmpPrefMatrix"></div>
         </div>
 
@@ -788,7 +791,7 @@
             <div>
               <span class="text-xs font-bold text-amber-900 block">Mark as Weight Exception</span>
               <span class="text-[11px] text-amber-700 leading-tight block">
-                This shift will be ignored by consistency penalty weights (window preference penalty and hour variance).
+                This shift will be ignored by consistency penalty weights (preference deviation and hour variance).
               </span>
             </div>
           </label>
@@ -934,13 +937,6 @@
   </div>
 
   <script>
-    // Shift window definitions: Morning (M), Swing (S), Night (N)
-    const SHIFT_WINDOWS = [
-      { key: 'Morning', label: 'M', title: 'Morning' },
-      { key: 'Swing',   label: 'S', title: 'Swing' },
-      { key: 'Night',   label: 'N', title: 'Night' }
-    ];
-
     const DAYS_CONFIG = [
       { key: "Mon", label: "M", full: "Monday" },
       { key: "Tue", label: "Tu", full: "Tuesday" },
@@ -949,66 +945,6 @@
       { key: "Fri", label: "F", full: "Friday" },
       { key: "Sat", label: "Sa", full: "Saturday" },
       { key: "Sun", label: "Su", full: "Sunday" }
-    ];
-
-    // Helper to generate default weekday windows
-    function makeWeekdayWindows(windows) {
-      const obj = {};
-      DAYS_CONFIG.forEach(d => {
-        obj[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...windows];
-      });
-      return obj;
-    }
-
-    const FACTORY_PRESETS = [
-      { 
-        id: "luke", name: "Luke", maxHours: 35, targetHours: 32, minHours: 25, 
-        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
-        preferredWindows: { Mon: ['Morning','Night'], Tue: ['Morning','Night'], Wed: ['Morning','Night'], Thu: ['Morning','Night'], Fri: ['Morning','Night'], Sat: ['Night'], Sun: [] }, 
-        unavailability: [] 
-      },
-      { 
-        id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, 
-        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
-        preferredWindows: { Mon: ['Morning','Night'], Tue: ['Morning','Night'], Wed: ['Morning','Night'], Thu: ['Morning','Night'], Fri: ['Morning','Night'], Sat: [], Sun: [] }, 
-        unavailability: [] 
-      },
-      { 
-        id: "ari", name: "Ari", maxHours: 35, targetHours: 32, minHours: 20, 
-        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
-        preferredWindows: { Mon: ['Morning','Swing','Night'], Tue: ['Morning','Swing','Night'], Wed: ['Morning','Swing','Night'], Thu: ['Morning','Swing','Night'], Fri: ['Morning','Swing','Night'], Sat: ['Morning','Night'], Sun: ['Morning','Night'] }, 
-        unavailability: [] 
-      },
-      { 
-        id: "luis", name: "Luis", maxHours: 25, targetHours: 23, minHours: 15, 
-        keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
-        preferredWindows: makeWeekdayWindows(['Swing']), 
-        unavailability: [] 
-      },
-      { 
-        id: "alan", name: "Alan", maxHours: 25, targetHours: 20, minHours: 10, 
-        keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
-        preferredWindows: { Mon: ['Swing'], Tue: [], Wed: ['Swing'], Thu: ['Swing'], Fri: ['Swing'], Sat: [], Sun: [] }, 
-        unavailability: [] 
-      },
-      { 
-        id: "david", name: "David", maxHours: 30, targetHours: 25, minHours: 10, 
-        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, 
-        preferredWindows: { Mon: [], Tue: ['Night'], Wed: ['Night'], Thu: ['Night'], Fri: ['Night'], Sat: ['Night'], Sun: ['Night'] }, 
-        unavailability: [] 
-      },
-      { 
-        id: "noah", name: "Noah", maxHours: 25, targetHours: 20, minHours: 10, 
-        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
-        preferredWindows: { Mon: ['Morning'], Tue: ['Morning'], Wed: [], Thu: ['Morning'], Fri: ['Morning'], Sat: [], Sun: [] }, 
-        unavailability: [] 
-      },
-      { 
-        id: "lauren", name: "Lauren", maxHours: 22, targetHours: 18, minHours: 10, 
-        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
-        preferredWindows: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: ['Night'], Sat: ['Morning','Swing','Night'], Sun: ['Morning','Swing','Night'] }, 
-        unavailability: [] 
-      }
     ];
 
     const FACTORY_SHIFT_LABELS = [
@@ -1062,12 +998,78 @@
     let currentSelectedWeekMonday = '2026-09-28';
     let currentView = 'master';
     let activeEditContext = null;
-    let newMasterPrefsState = makeWeekdayWindows(['Morning', 'Night']);
+    let newMasterPrefsState = {};
 
-    // --- REUSABLE PREFERENCE MATRIX MODULE (M / S / N) ---
+    // Baseline profiles mapped to live shift IDs
+    const FACTORY_PRESETS = [
+      { 
+        id: "luke", name: "Luke", maxHours: 35, targetHours: 32, minHours: 25, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
+        preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_CLOSE'], Sat: ['SHIFT_CLOSE'], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_CLOSE'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "ari", name: "Ari", maxHours: 35, targetHours: 32, minHours: 20, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Sat: ['SHIFT_OPEN','SHIFT_CLOSE'], Sun: ['SHIFT_OPEN','SHIFT_CLOSE'] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "luis", name: "Luis", maxHours: 25, targetHours: 23, minHours: 15, 
+        keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['SHIFT_MID'], Tue: ['SHIFT_MID'], Wed: ['SHIFT_MID'], Thu: ['SHIFT_MID'], Fri: ['SHIFT_MID'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "alan", name: "Alan", maxHours: 25, targetHours: 20, minHours: 10, 
+        keyholder: false, registerQualified: false, soloEligible: false, deliSpecialist: true, trainee: false, 
+        preferredWindows: { Mon: ['SHIFT_MID'], Tue: [], Wed: ['SHIFT_MID'], Thu: ['SHIFT_MID'], Fri: ['SHIFT_MID'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "david", name: "David", maxHours: 30, targetHours: 25, minHours: 10, 
+        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, 
+        preferredWindows: { Mon: [], Tue: ['SHIFT_CLOSE'], Wed: ['SHIFT_CLOSE'], Thu: ['SHIFT_CLOSE'], Fri: ['SHIFT_CLOSE'], Sat: ['SHIFT_CLOSE'], Sun: ['SHIFT_CLOSE'] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "noah", name: "Noah", maxHours: 25, targetHours: 20, minHours: 10, 
+        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
+        preferredWindows: { Mon: ['SHIFT_OPEN'], Tue: ['SHIFT_OPEN'], Wed: [], Thu: ['SHIFT_OPEN'], Fri: ['SHIFT_OPEN'], Sat: [], Sun: [] }, 
+        unavailability: [] 
+      },
+      { 
+        id: "lauren", name: "Lauren", maxHours: 22, targetHours: 18, minHours: 10, 
+        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
+        preferredWindows: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: ['SHIFT_CLOSE'], Sat: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Sun: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'] }, 
+        unavailability: [] 
+      }
+    ];
+
+    // Helper: Normalize preference keys (supports both dynamic shift ID and legacy category string)
+    function isShiftPreferred(dayPrefs = [], shift) {
+      if (!dayPrefs || dayPrefs.length === 0) return false;
+      if (dayPrefs.includes(shift.id)) return true;
+      if (dayPrefs.includes(shift.name)) return true;
+      // Legacy compatibility
+      if (shift.category === 'Morning' && (dayPrefs.includes('Morning') || dayPrefs.includes('Open'))) return true;
+      if (shift.category === 'Mid' && (dayPrefs.includes('Mid') || dayPrefs.includes('Swing'))) return true;
+      if (shift.category === 'Closing' && (dayPrefs.includes('Night') || dayPrefs.includes('Close'))) return true;
+      return false;
+    }
+
+    // --- DYNAMIC REUSABLE SHIFT LABEL PREFERENCE MATRIX ---
     function renderPreferenceMatrix(containerId, currentPrefs = {}, changeCallbackName, readOnly = false) {
       const container = document.getElementById(containerId);
       if (!container) return;
+
+      const configuredShifts = storeConfig.shiftLabels || FACTORY_SHIFT_LABELS;
 
       container.innerHTML = `
         <div class="grid grid-cols-7 gap-1.5 text-center">
@@ -1077,22 +1079,23 @@
               <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 flex flex-col items-center">
                 <span class="text-xs font-bold text-slate-800 mb-1">${d.label}</span>
                 <div class="flex flex-col gap-1 w-full">
-                  ${SHIFT_WINDOWS.map(w => {
-                    const checked = dayPrefs.includes(w.key) || (w.key === 'Swing' && dayPrefs.includes('Mid'));
+                  ${configuredShifts.map(s => {
+                    const checked = isShiftPreferred(dayPrefs, s);
+                    const letter = s.name.charAt(0).toUpperCase();
                     if (readOnly) {
                       return `
-                        <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}">
-                          ${w.label}
+                        <span class="text-[10px] font-bold py-0.5 rounded ${checked ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-400 opacity-40'}" title="${s.name} (${s.startTime}-${s.endTime})">
+                          ${letter}
                         </span>
                       `;
                     }
                     return `
                       <label class="flex items-center justify-center p-1 rounded text-[10px] font-bold cursor-pointer transition select-none ${
                         checked ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
-                      }" title="${w.title}">
+                      }" title="${s.name} (${s.startTime}-${s.endTime})">
                         <input type="checkbox" class="sr-only" ${checked ? 'checked' : ''} 
-                               onchange="${changeCallbackName}('${d.key}', '${w.key}', this.checked)">
-                        <span>${w.label}</span>
+                               onchange="${changeCallbackName}('${d.key}', '${s.id}', this.checked)">
+                        <span>${letter}</span>
                       </label>
                     `;
                   }).join('')}
@@ -1101,14 +1104,26 @@
             `;
           }).join('')}
         </div>
-        <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 px-1">
-          <span><strong>M</strong>: Morning &bull; <strong>S</strong>: Swing &bull; <strong>N</strong>: Night</span>
+        <div class="flex flex-wrap justify-between items-center text-[10px] text-slate-400 mt-1.5 px-1 gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            ${configuredShifts.map(s => `<span><strong>${s.name.charAt(0).toUpperCase()}</strong>: ${s.name}</span>`).join('&bull; ')}
+          </div>
           <span>Unselected column = Day OFF</span>
         </div>
       `;
     }
 
     function initApp() {
+      try {
+        const storedConfig = localStorage.getItem(STORAGE_STORE_KEY);
+        storeConfig = storedConfig ? JSON.parse(storedConfig) : JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
+        if (!storeConfig.shiftLabels || storeConfig.shiftLabels.length === 0) {
+          storeConfig.shiftLabels = JSON.parse(JSON.stringify(FACTORY_SHIFT_LABELS));
+        }
+      } catch (e) {
+        storeConfig = JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
+      }
+
       try {
         const stored = localStorage.getItem(STORAGE_MASTER_KEY);
         masterDirectory = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(FACTORY_PRESETS));
@@ -1124,16 +1139,6 @@
       }
 
       try {
-        const storedConfig = localStorage.getItem(STORAGE_STORE_KEY);
-        storeConfig = storedConfig ? JSON.parse(storedConfig) : JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
-        if (!storeConfig.shiftLabels || storeConfig.shiftLabels.length === 0) {
-          storeConfig.shiftLabels = JSON.parse(JSON.stringify(FACTORY_SHIFT_LABELS));
-        }
-      } catch (e) {
-        storeConfig = JSON.parse(JSON.stringify(DEFAULT_STORE_CONFIG));
-      }
-
-      try {
         const storedSchedules = localStorage.getItem(STORAGE_SCHEDULES_KEY);
         savedSchedules = storedSchedules ? JSON.parse(storedSchedules) : {};
       } catch (e) {
@@ -1143,6 +1148,12 @@
       buildWeekDropdown();
       syncSettingsFormControls();
       
+      // Default creation form preference to all shifts Mon-Fri
+      const defaultShifts = (storeConfig.shiftLabels || []).map(s => s.id);
+      DAYS_CONFIG.forEach(d => {
+        newMasterPrefsState[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...defaultShifts];
+      });
+
       if (!savedSchedules[currentSelectedWeekMonday]) {
         generateScheduleForWeek(currentSelectedWeekMonday, false);
       }
@@ -1152,12 +1163,12 @@
       switchView('master');
     }
 
-    function handleNewMasterPrefToggle(dayKey, windowName, isChecked) {
+    function handleNewMasterPrefToggle(dayKey, shiftId, isChecked) {
       if (!newMasterPrefsState[dayKey]) newMasterPrefsState[dayKey] = [];
       if (isChecked) {
-        if (!newMasterPrefsState[dayKey].includes(windowName)) newMasterPrefsState[dayKey].push(windowName);
+        if (!newMasterPrefsState[dayKey].includes(shiftId)) newMasterPrefsState[dayKey].push(shiftId);
       } else {
-        newMasterPrefsState[dayKey] = newMasterPrefsState[dayKey].filter(w => w !== windowName && !(windowName === 'Swing' && w === 'Mid'));
+        newMasterPrefsState[dayKey] = newMasterPrefsState[dayKey].filter(id => id !== shiftId);
       }
       renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
     }
@@ -1181,6 +1192,10 @@
       renderHolidayExceptions();
       renderShiftLabelsList();
       renderDynamicShiftLegend();
+      // Re-render matrices when shift labels change
+      renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
+      renderMasterDirectory();
+      renderActiveRoster();
       updateMetrics();
     }
 
@@ -1293,7 +1308,7 @@
               </div>
 
               <div>
-                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">Shift Window Preferences</span>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">Shift Label Preferences</span>
                 <div id="prefMatrixMaster_${profile.id}"></div>
               </div>
             </div>
@@ -1340,12 +1355,12 @@
       lucide.createIcons();
     }
 
-    function handleEditEmpPrefToggle(dayKey, windowName, isChecked) {
+    function handleEditEmpPrefToggle(dayKey, shiftId, isChecked) {
       if (!editEmpPrefsState[dayKey]) editEmpPrefsState[dayKey] = [];
       if (isChecked) {
-        if (!editEmpPrefsState[dayKey].includes(windowName)) editEmpPrefsState[dayKey].push(windowName);
+        if (!editEmpPrefsState[dayKey].includes(shiftId)) editEmpPrefsState[dayKey].push(shiftId);
       } else {
-        editEmpPrefsState[dayKey] = editEmpPrefsState[dayKey].filter(w => w !== windowName && !(windowName === 'Swing' && w === 'Mid'));
+        editEmpPrefsState[dayKey] = editEmpPrefsState[dayKey].filter(id => id !== shiftId);
       }
       renderPreferenceMatrix('editEmpPrefMatrix', editEmpPrefsState, 'handleEditEmpPrefToggle');
     }
@@ -1430,7 +1445,11 @@
       document.getElementById('newMasterKeyholder').checked = false;
       document.getElementById('newMasterDeli').checked = false;
       document.getElementById('newMasterTrainee').checked = false;
-      newMasterPrefsState = makeWeekdayWindows(['Morning', 'Night']);
+      
+      const defaultShifts = (storeConfig.shiftLabels || []).map(s => s.id);
+      DAYS_CONFIG.forEach(d => {
+        newMasterPrefsState[d.key] = ["Sat", "Sun"].includes(d.key) ? [] : [...defaultShifts];
+      });
       renderPreferenceMatrix('newMasterPrefMatrix', newMasterPrefsState, 'handleNewMasterPrefToggle');
     }
 
@@ -1571,7 +1590,7 @@
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Shift Window Preferences</label>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Shift Label Preferences</label>
                 <div id="prefMatrixActive_${index}"></div>
               </div>
             </div>
@@ -1602,16 +1621,15 @@
         container.appendChild(card);
         renderPreferenceMatrix(`prefMatrixActive_${index}`, emp.preferredWindows || {}, `handleActivePrefToggle_${index}`);
 
-        // Register dynamic handler on window for this card index
-        window[`handleActivePrefToggle_${index}`] = function(dayKey, windowName, isChecked) {
+        window[`handleActivePrefToggle_${index}`] = function(dayKey, shiftId, isChecked) {
           if (!activeRoster[index].preferredWindows) activeRoster[index].preferredWindows = {};
           if (!activeRoster[index].preferredWindows[dayKey]) activeRoster[index].preferredWindows[dayKey] = [];
           if (isChecked) {
-            if (!activeRoster[index].preferredWindows[dayKey].includes(windowName)) {
-              activeRoster[index].preferredWindows[dayKey].push(windowName);
+            if (!activeRoster[index].preferredWindows[dayKey].includes(shiftId)) {
+              activeRoster[index].preferredWindows[dayKey].push(shiftId);
             }
           } else {
-            activeRoster[index].preferredWindows[dayKey] = activeRoster[index].preferredWindows[dayKey].filter(w => w !== windowName && !(windowName === 'Swing' && w === 'Mid'));
+            activeRoster[index].preferredWindows[dayKey] = activeRoster[index].preferredWindows[dayKey].filter(id => id !== shiftId);
           }
           saveActiveRoster();
           renderPreferenceMatrix(`prefMatrixActive_${index}`, activeRoster[index].preferredWindows, `handleActivePrefToggle_${index}`);
@@ -1716,7 +1734,7 @@
           </div>
 
           <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="text-[11px] text-slate-400">${shift.isSystem ? 'System Shift' : 'Custom Shift'}</span>
+            <span class="text-[11px] text-slate-400 font-mono">${shift.id}</span>
             <div class="flex items-center gap-1">
               <button onclick="openEditShiftModal(${index})" class="px-2.5 py-1 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition font-medium">
                 Edit Times
@@ -1833,7 +1851,7 @@
 
       saveStoreConfig();
       closeShiftLabelModal();
-      showToast(`Saved shift definition for "${name}".`, "emerald");
+      showToast(`Saved shift definition "${name}"! Preference pickers updated.`, "emerald");
     }
 
     function deleteShiftLabel(index) {
@@ -2139,17 +2157,12 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- SOLVER ALGORITHM (ROTATIONAL ANTI-CLOPENING & M / S / N) ---
-    function getPreferenceScore(emp, dayKey, windowCategory) {
+    // --- SOLVER ALGORITHM (CORRELATED SHIFT PREFERENCES) ---
+    function evaluateShiftPreferenceCost(emp, dayKey, targetShift) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
-      if (!dayPrefs || dayPrefs.length === 0) return 40; // Penalize scheduling on preferred OFF day
-      
-      // Accept both 'Swing' and legacy 'Mid'
-      const targetMatches = windowCategory === 'Mid' || windowCategory === 'Swing' ? ['Mid', 'Swing'] : [windowCategory];
-      const hasMatch = targetMatches.some(cat => dayPrefs.includes(cat));
-
-      if (hasMatch) return -30;  // Reward match
-      return 20; // Penalize working non-preferred window
+      if (!dayPrefs || dayPrefs.length === 0) return 40; // Penalize working on requested day OFF
+      if (isShiftPreferred(dayPrefs, targetShift)) return -30; // Direct reward
+      return 20; // Penalize unselected shift assignment
     }
 
     function runScheduleSolver() {
@@ -2197,7 +2210,7 @@
         };
       });
 
-      // Pass 1: Mandatory Closing Keyholders (Rotational & Balanced across Luke/Dorothy/Ari)
+      // Pass 1: Mandatory Closing Keyholders (Rotational & Preference-Scored)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
         const dayKey = DAYS_CONFIG[target.dayIdx].key;
@@ -2214,9 +2227,9 @@
           const bCloses = scheduleAssignments[b.id].filter(s => s.category === "Closing").length;
           if (aCloses !== bCloses) return aCloses - bCloses;
 
-          // Window preference score for Night
-          const aScore = getPreferenceScore(a, dayKey, 'Night');
-          const bScore = getPreferenceScore(b, dayKey, 'Night');
+          // Shift preference score
+          const aScore = evaluateShiftPreferenceCost(a, dayKey, closeShift);
+          const bScore = evaluateShiftPreferenceCost(b, dayKey, closeShift);
           if (aScore !== bScore) return aScore - bScore;
 
           // Balance towards target hours
@@ -2233,7 +2246,7 @@
         }
       });
 
-      // Pass 2: Openers (With Anti-Clopening Protection)
+      // Pass 2: Openers (Anti-Clopening & Preference-Scored)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
         const dayKey = DAYS_CONFIG[target.dayIdx].key;
@@ -2244,15 +2257,15 @@
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
 
-          // Anti-clopening: Cannot open if closed the preceding night
+          // Anti-clopening protection
           if (target.dayIdx > 0) {
             const yesterdayShift = scheduleAssignments[e.id][target.dayIdx - 1];
             if (yesterdayShift && yesterdayShift.category === "Closing") return false;
           }
           return true;
         }).sort((a, b) => {
-          const aScore = getPreferenceScore(a, dayKey, 'Morning');
-          const bScore = getPreferenceScore(b, dayKey, 'Morning');
+          const aScore = evaluateShiftPreferenceCost(a, dayKey, openShift);
+          const bScore = evaluateShiftPreferenceCost(b, dayKey, openShift);
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
@@ -2276,8 +2289,8 @@
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
           return true;
         }).sort((a, b) => {
-          const aScore = getPreferenceScore(a, dayKey, 'Night');
-          const bScore = getPreferenceScore(b, dayKey, 'Night');
+          const aScore = evaluateShiftPreferenceCost(a, dayKey, closeShift);
+          const bScore = evaluateShiftPreferenceCost(b, dayKey, closeShift);
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
@@ -2289,7 +2302,7 @@
         }
       });
 
-      // Pass 4: Mid Shifts (Swing)
+      // Pass 4: Mid / Custom Shifts (Respects Delivery / Deli Qualifications)
       dailyTargets.forEach(target => {
         if (target.isClosed) return;
         const dayKey = DAYS_CONFIG[target.dayIdx].key;
@@ -2303,8 +2316,8 @@
         }).sort((a, b) => {
           const aDeliBonus = a.deliSpecialist ? -30 : 0;
           const bDeliBonus = b.deliSpecialist ? -30 : 0;
-          const aScore = getPreferenceScore(a, dayKey, 'Swing') + aDeliBonus;
-          const bScore = getPreferenceScore(b, dayKey, 'Swing') + bDeliBonus;
+          const aScore = evaluateShiftPreferenceCost(a, dayKey, midShift) + aDeliBonus;
+          const bScore = evaluateShiftPreferenceCost(b, dayKey, midShift) + bDeliBonus;
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
         });
 
@@ -2333,12 +2346,8 @@
               const dayPrefs = emp.preferredWindows?.[dayKey] || [];
               if (dayPrefs.length === 0) {
                 totalPenaltyScore += (weights.preferredShift || 50); // Worked on requested day OFF
-              } else {
-                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Swing";
-                const matchesPref = dayPrefs.includes(shiftCategoryToWindow) || (shiftCategoryToWindow === 'Swing' && dayPrefs.includes('Mid'));
-                if (!matchesPref) {
-                  totalPenaltyScore += (weights.preferredShift || 50); // Worked non-preferred window
-                }
+              } else if (!isShiftPreferred(dayPrefs, shift)) {
+                totalPenaltyScore += (weights.preferredShift || 50); // Worked unselected shift label
               }
             }
           } else {
@@ -2848,12 +2857,8 @@
               const dayPrefs = emp.preferredWindows?.[dayKey] || [];
               if (dayPrefs.length === 0) {
                 penalty += (weights.preferredShift || 50);
-              } else {
-                const shiftCategoryToWindow = shift.category === "Morning" ? "Morning" : shift.category === "Closing" ? "Night" : "Swing";
-                const matchesPref = dayPrefs.includes(shiftCategoryToWindow) || (shiftCategoryToWindow === 'Swing' && dayPrefs.includes('Mid'));
-                if (!matchesPref) {
-                  penalty += (weights.preferredShift || 50);
-                }
+              } else if (!isShiftPreferred(dayPrefs, shift)) {
+                penalty += (weights.preferredShift || 50);
               }
             }
           } else {
@@ -2878,7 +2883,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.1",
+        systemVersion: "5.2",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -2898,7 +2903,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.1",
+        systemVersion: "5.2",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
