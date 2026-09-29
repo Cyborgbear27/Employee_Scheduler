@@ -63,9 +63,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base font-bold text-slate-900 leading-tight">Employee_Scheduler</h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.5</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">v5.7</span>
           </div>
-          <p class="text-xs text-slate-500">Day Priority Weighting & Shift Allocation Engine</p>
+          <p class="text-xs text-slate-500">Universal Shift Eligibility with Mandatory Register & Solo Pairings</p>
         </div>
       </div>
 
@@ -166,7 +166,7 @@
               <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
               Register New Employee Profile
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Configure skill tags, weekly hours, shift preferences, and mandatory required shifts.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Define employee roles, target hours, shift preferences, and mandatory shift locks.</p>
           </div>
         </div>
 
@@ -217,6 +217,9 @@
                 <span class="font-medium text-slate-800">Trainee</span>
               </label>
             </div>
+            <p class="text-[11px] text-slate-400 mt-1.5">
+              * <strong>Solo Eligible</strong>: Permitted to staff a shift alone. <strong>Register</strong>: Every window must have at least one register-qualified worker. <strong>Deli/Stock</strong>: Can work Open/Mid/Close, provided register coverage is satisfied.
+            </p>
           </div>
 
           <div>
@@ -527,7 +530,7 @@
           <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
           <div>
             <span class="font-bold">Schedule Status:</span>
-            <span id="solverDiagnosticsText">Schedule generated satisfying keyholder hard rules and mandatory assignments.</span>
+            <span id="solverDiagnosticsText">Schedule generated satisfying keyholder hard rules, register coverage, and solo eligibility.</span>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -599,7 +602,7 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Edit Master Employee Profile</h3>
-            <p class="text-[11px] text-slate-500">Updates profile parameters, shift preferences, and mandatory shift locks.</p>
+            <p class="text-[11px] text-slate-500">Updates profile parameters, skill tags, and mandatory shift locks.</p>
           </div>
         </div>
         <button onclick="closeEditEmployeeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold leading-none">&times;</button>
@@ -1027,14 +1030,14 @@
       },
       { 
         id: "dorothy", name: "Dorothy", maxHours: 35, targetHours: 30, minHours: 24, 
-        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_CLOSE'], Sat: [], Sun: [] }, 
         mandatoryShifts: {},
         unavailability: [] 
       },
       { 
         id: "ari", name: "Ari", maxHours: 35, targetHours: 32, minHours: 20, 
-        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: true, trainee: false, 
+        keyholder: true, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: false, 
         preferredWindows: { Mon: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Tue: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Wed: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Thu: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Fri: ['SHIFT_OPEN','SHIFT_MID','SHIFT_CLOSE'], Sat: ['SHIFT_OPEN','SHIFT_CLOSE'], Sun: ['SHIFT_OPEN','SHIFT_CLOSE'] }, 
         mandatoryShifts: {},
         unavailability: [] 
@@ -1055,7 +1058,7 @@
       },
       { 
         id: "david", name: "David", maxHours: 30, targetHours: 25, minHours: 10, 
-        keyholder: false, registerQualified: true, soloEligible: true, deliSpecialist: false, trainee: true, 
+        keyholder: false, registerQualified: true, soloEligible: false, deliSpecialist: false, trainee: true, 
         preferredWindows: { Mon: [], Tue: ['SHIFT_CLOSE'], Wed: ['SHIFT_CLOSE'], Thu: ['SHIFT_CLOSE'], Fri: ['SHIFT_CLOSE'], Sat: ['SHIFT_CLOSE'], Sun: ['SHIFT_CLOSE'] }, 
         mandatoryShifts: {},
         unavailability: [] 
@@ -1172,7 +1175,6 @@
             s.category = deriveShiftCategory(s.startTime, s.endTime);
           });
         }
-        // Normalize priority on operating hours if upgrading from older version
         if (storeConfig.operatingHours) {
           storeConfig.operatingHours.forEach(oh => {
             if (!oh.priority) {
@@ -1644,6 +1646,8 @@
                   <h3 class="text-base font-bold text-slate-900">${escapeHtml(emp.name)}</h3>
                   ${emp.keyholder ? '<span class="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Keyholder</span>' : ''}
                   ${emp.soloEligible ? '<span class="text-[10px] font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Solo</span>' : ''}
+                  ${emp.registerQualified ? '<span class="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">Register</span>' : ''}
+                  ${emp.deliSpecialist ? '<span class="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Deli/Stock</span>' : ''}
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5">Target: <strong class="text-slate-800">${emp.targetHours || 30}h</strong> | Hard Cap: <strong class="text-slate-800">${emp.maxHours || 35}h</strong></p>
               </div>
@@ -2281,7 +2285,7 @@
       if (el) el.textContent = `${val} ${suffix}`;
     }
 
-    // --- SOLVER ALGORITHM (PHASE-ORDERED BY DAY PRIORITY + PASS 0 MANDATORY LOCKS) ---
+    // --- SOLVER ALGORITHM (CO-WORKER REGISTER PAIRING & DYNAMIC SOLO CONSTRAINTS) ---
     function evaluateShiftPreferenceCost(emp, dayKey, targetShift) {
       const dayPrefs = emp.preferredWindows?.[dayKey];
       if (!dayPrefs || dayPrefs.length === 0) return 40;
@@ -2339,11 +2343,29 @@
           priority: priorityLabel,
           priorityMult: getPriorityMultiplier(priorityLabel),
           isClosed,
+          prefMorning: opDay.prefMorning || 1,
+          prefMid: opDay.prefMid || 1,
+          prefClose: opDay.prefClose || 2,
           openSlots: isClosed ? 0 : (opDay.prefMorning || 1),
           midSlots: isClosed ? 0 : (opDay.prefMid || 1),
           closeSlots: isClosed ? 0 : (opDay.prefClose || 2)
         };
       });
+
+      // Window queries for dynamic solo & register validation
+      function getAssignedToWindow(dayIdx, category) {
+        return employees.filter(e => {
+          const s = scheduleAssignments[e.id][dayIdx];
+          return s && s.category === category;
+        });
+      }
+
+      function hasRegisterCoverageInWindow(dayIdx, category) {
+        return employees.some(e => {
+          const s = scheduleAssignments[e.id][dayIdx];
+          return s && s.category === category && e.registerQualified;
+        });
+      }
 
       // PASS 0: Mandatory Shift Allocations (Hard Locks)
       employees.forEach(emp => {
@@ -2375,10 +2397,10 @@
         });
       });
 
-      // Sort solving order: Critical days (2.0x) -> High days (1.5x) -> Normal days (1.0x)
+      // Sort execution order by Day Priority (Critical -> High -> Normal)
       const prioritizedExecutionOrder = [...dailyTargets].sort((a, b) => b.priorityMult - a.priorityMult);
 
-      // Pass 1: Mandatory Closing Keyholders (Solved in priority order)
+      // Pass 1: Mandatory Closing Keyholders
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2396,6 +2418,11 @@
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
+
+          // Solo check: If alone in store (target <= 1 and no one assigned), soloEligible required
+          const currentWindowStaff = getAssignedToWindow(target.dayIdx, "Closing");
+          if (currentWindowStaff.length === 0 && target.prefClose <= 1 && !e.soloEligible) return false;
+
           return true;
         }).sort((a, b) => {
           const aCloses = scheduleAssignments[a.id].filter(s => s.category === "Closing").length;
@@ -2417,7 +2444,7 @@
         }
       });
 
-      // Pass 2: Openers (Solved in priority order with anti-clopening)
+      // Pass 2: Openers (Deli-Qualified allowed; register partner or register status enforced; anti-clopening)
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2428,13 +2455,27 @@
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + openShift.hours > (e.maxHours || 35)) return false;
 
-          // Anti-clopening check
+          const currentMorningStaff = getAssignedToWindow(target.dayIdx, "Morning");
+          
+          // Solo eligibility rule: sole worker on shift requires soloEligible
+          if (currentMorningStaff.length === 0 && target.prefMorning <= 1 && !e.soloEligible) return false;
+
+          // Register rule: If sole worker on shift, must be register-qualified
+          if (currentMorningStaff.length === 0 && target.prefMorning <= 1 && !e.registerQualified) return false;
+
+          // Anti-clopening protection
           if (target.dayIdx > 0) {
             const yesterdayShift = scheduleAssignments[e.id][target.dayIdx - 1];
             if (yesterdayShift && yesterdayShift.category === "Closing") return false;
           }
           return true;
         }).sort((a, b) => {
+          // If no register worker in morning window yet, strongly prioritize register qualification
+          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Morning");
+          if (!regCovered && (a.registerQualified !== b.registerQualified)) {
+            return a.registerQualified ? -1 : 1;
+          }
+
           const aScore = evaluateShiftPreferenceCost(a, dayKey, openShift);
           const bScore = evaluateShiftPreferenceCost(b, dayKey, openShift);
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
@@ -2442,13 +2483,21 @@
 
         while (target.openSlots > 0 && openCandidates.length > 0) {
           const emp = openCandidates.shift();
+          
+          // Enforce that a non-register worker is only scheduled if a register worker is already present or upcoming
+          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Morning") || emp.registerQualified;
+          if (!regCovered && target.openSlots === 1) {
+            // Last slot in window must be register-qualified
+            if (!emp.registerQualified) continue;
+          }
+
           scheduleAssignments[emp.id][target.dayIdx] = { ...openShift, isException: false, isManual: false };
           empHourTotals[emp.id] += openShift.hours;
           target.openSlots--;
         }
       });
 
-      // Pass 3: Remaining Closing Shifts
+      // Pass 3: Remaining Closing Shifts (Enforces register co-worker pairings & solo rules)
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2458,8 +2507,22 @@
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + closeShift.hours > (e.maxHours || 35)) return false;
+
+          const currentCloseStaff = getAssignedToWindow(target.dayIdx, "Closing");
+          
+          // Solo eligibility rule
+          if (currentCloseStaff.length === 0 && target.prefClose <= 1 && !e.soloEligible) return false;
+
+          // Register rule
+          if (currentCloseStaff.length === 0 && target.prefClose <= 1 && !e.registerQualified) return false;
+
           return true;
         }).sort((a, b) => {
+          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Closing");
+          if (!regCovered && (a.registerQualified !== b.registerQualified)) {
+            return a.registerQualified ? -1 : 1;
+          }
+
           const aScore = evaluateShiftPreferenceCost(a, dayKey, closeShift);
           const bScore = evaluateShiftPreferenceCost(b, dayKey, closeShift);
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
@@ -2467,13 +2530,19 @@
 
         while (target.closeSlots > 0 && closeCandidates.length > 0) {
           const emp = closeCandidates.shift();
+          
+          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Closing") || emp.registerQualified;
+          if (!regCovered && target.closeSlots === 1) {
+            if (!emp.registerQualified) continue;
+          }
+
           scheduleAssignments[emp.id][target.dayIdx] = { ...closeShift, isException: false, isManual: false };
           empHourTotals[emp.id] += closeShift.hours;
           target.closeSlots--;
         }
       });
 
-      // Pass 4: Mid Shifts (Swing)
+      // Pass 4: Mid / Swing Shifts (Supports Deli/Stock & Maintains Register/Solo Safeguards)
       prioritizedExecutionOrder.forEach(target => {
         if (target.isClosed) return;
         const dayKey = target.dayKey;
@@ -2483,10 +2552,20 @@
           const isBlackedOut = (e.unavailability || []).some(u => u.date === target.dateStr);
           if (isBlackedOut) return false;
           if (empHourTotals[e.id] + midShift.hours > (e.maxHours || 35)) return false;
+
+          const currentMidStaff = getAssignedToWindow(target.dayIdx, "Mid");
+          if (currentMidStaff.length === 0 && target.prefMid <= 1 && !e.soloEligible) return false;
+          if (currentMidStaff.length === 0 && target.prefMid <= 1 && !e.registerQualified) return false;
+
           return true;
         }).sort((a, b) => {
-          const aDeliBonus = a.deliSpecialist ? -30 : 0;
-          const bDeliBonus = b.deliSpecialist ? -30 : 0;
+          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Mid");
+          if (!regCovered && target.prefMid <= 1 && (a.registerQualified !== b.registerQualified)) {
+            return a.registerQualified ? -1 : 1;
+          }
+
+          const aDeliBonus = a.deliSpecialist ? -35 : 0;
+          const bDeliBonus = b.deliSpecialist ? -35 : 0;
           const aScore = evaluateShiftPreferenceCost(a, dayKey, midShift) + aDeliBonus;
           const bScore = evaluateShiftPreferenceCost(b, dayKey, midShift) + bDeliBonus;
           return (aScore - bScore) || (empHourTotals[a.id] - empHourTotals[b.id]);
@@ -2494,6 +2573,12 @@
 
         while (target.midSlots > 0 && midCandidates.length > 0) {
           const emp = midCandidates.shift();
+
+          const regCovered = hasRegisterCoverageInWindow(target.dayIdx, "Mid") || emp.registerQualified;
+          if (!regCovered && target.midSlots === 1) {
+            if (!emp.registerQualified) continue;
+          }
+
           scheduleAssignments[emp.id][target.dayIdx] = { ...midShift, isException: false, isManual: false };
           empHourTotals[emp.id] += midShift.hours;
           target.midSlots--;
@@ -2549,7 +2634,7 @@
       renderScheduleGrid();
 
       if (showFeedback) {
-        showToast(`Schedule computed for week of ${targetWeekMonday} (Day-Priority Optimized)!`, "emerald");
+        showToast(`Schedule generated with skills constraints and day priorities verified!`, "emerald");
       }
     }
 
@@ -2624,7 +2709,7 @@
           diagText.textContent = `Labor ceiling exceeded (${schedule.totalAssignedHours.toFixed(1)} / ${storeConfig.operationalConstraints?.manHourCap || 205} hrs).`;
           diagBar.className = "bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-900 no-print";
         } else {
-          diagText.textContent = `Headcount, priority days, mandatory locks, and keyholder rotation verified.`;
+          diagText.textContent = `Solo eligibility, register coverage, and deli-stock shifts verified across all windows.`;
           diagBar.className = "bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-emerald-900 no-print";
         }
       }
@@ -2648,6 +2733,8 @@
         let roleBadges = '';
         if (emp.keyholder) roleBadges += '<span class="inline-flex items-center text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded-md">Key</span> ';
         if (emp.soloEligible) roleBadges += '<span class="inline-flex items-center text-[9px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded-md">Solo</span> ';
+        if (emp.registerQualified) roleBadges += '<span class="inline-flex items-center text-[9px] font-medium bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.2 rounded-md">Reg</span> ';
+        if (emp.deliSpecialist) roleBadges += '<span class="inline-flex items-center text-[9px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded-md">Stock</span> ';
 
         let cellsHtml = `
           <td class="py-3 px-3 sticky left-0 bg-white z-10 border-r border-slate-200">
@@ -3069,7 +3156,7 @@
     function openMasterModal() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.5",
+        systemVersion: "5.7",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
@@ -3089,7 +3176,7 @@
     function downloadMasterJson() {
       const fullSystemExport = {
         system: "Employee_Scheduler",
-        systemVersion: "5.5",
+        systemVersion: "5.7",
         exportedAt: new Date().toISOString(),
         masterDirectory,
         activeRoster,
